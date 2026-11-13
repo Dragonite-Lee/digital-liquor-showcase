@@ -1,8 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { type LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import * as Sharing from 'expo-sharing';
+import { type ComponentRef, createContext, useContext, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  type LayoutChangeEvent,
+  PixelRatio,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import {
   GestureDetector,
   usePanGesture,
@@ -18,6 +29,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { captureRef } from 'react-native-view-shot';
 
 import { BottleImage } from '@/components/BottleImage';
 import { FilterChips } from '@/components/FilterChips';
@@ -52,18 +64,33 @@ const ROOM_H = HEADROOM + UNIT_H + FLOOR;
 const MAX_ZOOM = 3.2;
 const TAP_ZOOM = 2.2;
 
+type Cell = { slot: number; bottle?: Bottle };
+
+/** 자리 옮기기 상태. movingId가 있으면 선반의 모든 칸이 놓을 자리가 된다. */
+const MoveContext = createContext<{
+  movingId: string | null;
+  canMove: boolean;
+  pick: (id: string) => void;
+  place: (slot: number) => void;
+}>({ movingId: null, canMove: false, pick: () => {}, place: () => {} });
+
 function Standing({ bottle }: { bottle: Bottle }) {
+  const { movingId, canMove, pick } = useContext(MoveContext);
+  const held = movingId === bottle.id;
   return (
     <>
       <View style={styles.mirrorClip} pointerEvents="none">
         <BottleImage bottle={bottle} style={styles.mirror} />
       </View>
-      <View style={styles.contact} pointerEvents="none" />
+      <View style={[styles.contact, held && styles.contactHeld]} pointerEvents="none" />
       <Pressable
         onPress={() => router.push({ pathname: '/bottle/[id]', params: { id: bottle.id } })}
+        onLongPress={canMove ? () => pick(bottle.id) : undefined}
+        delayLongPress={320}
         accessibilityRole="button"
         accessibilityLabel={`${bottle.name || '이름 없는 병'} 자세히 보기`}
-        style={({ pressed }) => [styles.bottleHit, pressed && { opacity: 0.75 }]}
+        accessibilityHint={canMove ? '길게 누르면 자리를 옮길 수 있어요' : undefined}
+        style={({ pressed }) => [styles.bottleHit, held && styles.bottleHeld, pressed && { opacity: 0.75 }]}
       >
         <BottleImage bottle={bottle} style={styles.bottle} />
       </Pressable>
@@ -71,8 +98,28 @@ function Standing({ bottle }: { bottle: Bottle }) {
   );
 }
 
-function Shelf({ bottles }: { bottles: Bottle[] }) {
-  const slots = Array.from({ length: COLS }, (_, i) => bottles[i]);
+function Slot({ cell }: { cell: Cell }) {
+  const { movingId, place } = useContext(MoveContext);
+  const moving = movingId !== null;
+  const held = moving && cell.bottle?.id === movingId;
+  return (
+    <View style={styles.slot}>
+      {cell.bottle ? <Standing bottle={cell.bottle} /> : null}
+      {moving && !held && (
+        <Pressable
+          onPress={() => place(cell.slot)}
+          accessibilityRole="button"
+          accessibilityLabel={cell.bottle ? `${cell.bottle.name || '이름 없는 병'}와 자리 바꾸기` : '이 빈자리에 놓기'}
+          style={styles.drop}
+        >
+          {!cell.bottle && <View style={styles.dropMark} />}
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
+function Shelf({ cells }: { cells: Cell[] }) {
   return (
     <View>
       <View style={styles.bay}>
@@ -94,10 +141,8 @@ function Shelf({ bottles }: { bottles: Bottle[] }) {
         />
         <LinearGradient colors={['rgba(255,255,255,0.06)', 'rgba(255,255,255,0.34)']} style={styles.glassTop} />
         <View style={styles.row}>
-          {slots.map((bottle, i) => (
-            <View key={bottle?.id ?? `empty-${i}`} style={styles.slot}>
-              {bottle ? <Standing bottle={bottle} /> : null}
-            </View>
+          {cells.map((cell) => (
+            <Slot key={cell.slot} cell={cell} />
           ))}
         </View>
         <LinearGradient colors={['rgba(255,252,238,0.95)', 'rgba(255,252,238,0)']} style={styles.ledGlow} pointerEvents="none" />
@@ -108,8 +153,8 @@ function Shelf({ bottles }: { bottles: Bottle[] }) {
 
       {/* 선반 아래 원목 띠 — 메모지를 붙이는 자리 */}
       <LinearGradient colors={['#1F120A', '#4B2E1B', '#38210F']} locations={[0, 0.25, 1]} style={styles.lip}>
-        {slots.map((bottle, i) => (
-          <View key={bottle?.id ?? `empty-${i}`} style={styles.memoSlot}>
+        {cells.map(({ slot, bottle }) => (
+          <View key={slot} style={styles.memoSlot}>
             {bottle ? (
               <MemoSlip name={bottle.name} memo={bottle.memo} tilt={(seeded(bottle.id, 5) - 0.5) * 4} />
             ) : null}
@@ -120,8 +165,8 @@ function Shelf({ bottles }: { bottles: Bottle[] }) {
   );
 }
 
-function Unit({ bottles }: { bottles: Bottle[] }) {
-  const shelves = Array.from({ length: ROWS }, (_, i) => bottles.slice(i * COLS, (i + 1) * COLS));
+function Unit({ cells }: { cells: Cell[] }) {
+  const shelves = Array.from({ length: ROWS }, (_, i) => cells.slice(i * COLS, (i + 1) * COLS));
   return (
     <View style={styles.unitWrap}>
       {/* 장 위 벽에 번지는 간접 조명 */}
@@ -134,7 +179,7 @@ function Unit({ bottles }: { bottles: Bottle[] }) {
       >
         <View style={styles.inner}>
           {shelves.map((row, i) => (
-            <Shelf key={i} bottles={row} />
+            <Shelf key={i} cells={row} />
           ))}
         </View>
       </LinearGradient>
@@ -144,15 +189,60 @@ function Unit({ bottles }: { bottles: Bottle[] }) {
   );
 }
 
+/** 병을 자리 번호대로 칸에 놓는다. 필터가 걸려 있으면 그 종류만 앞에서부터 채워 보여 준다. */
+function arrange(bottles: Bottle[], filtered: boolean): Cell[][] {
+  const bySlot = new Map<number, Bottle>();
+  if (filtered) {
+    [...bottles].sort((a, b) => (a.slot ?? 0) - (b.slot ?? 0)).forEach((b, i) => bySlot.set(i, b));
+  } else {
+    bottles.forEach((b, i) => bySlot.set(b.slot ?? i, b));
+  }
+  const last = bySlot.size ? Math.max(...bySlot.keys()) : -1;
+  let unitCount = Math.max(2, Math.floor(last / PER_UNIT) + 1);
+  // 늘 빈자리가 하나는 남도록, 꽉 차면 장을 하나 더 세운다
+  if (bySlot.size >= unitCount * PER_UNIT) unitCount += 1;
+  return Array.from({ length: unitCount }, (_, u) =>
+    Array.from({ length: PER_UNIT }, (_, i) => {
+      const slot = u * PER_UNIT + i;
+      return { slot, bottle: bySlot.get(slot) };
+    }),
+  );
+}
+
 export default function Cabinet() {
   const insets = useSafeAreaInsets();
   const bottles = useCellar((s) => s.bottles);
   const filter = useCellar((s) => s.filter);
-  const shown = filter === 'all' ? bottles : bottles.filter((b) => b.category === filter);
+  const moveTo = useCellar((s) => s.moveTo);
+  const filtered = filter !== 'all';
+  const shown = filtered ? bottles.filter((b) => b.category === filter) : bottles;
 
-  // 늘 빈 자리가 남은 장이 하나는 있도록
-  const unitCount = Math.max(2, Math.ceil((shown.length + 1) / PER_UNIT));
-  const units = Array.from({ length: unitCount }, (_, i) => shown.slice(i * PER_UNIT, (i + 1) * PER_UNIT));
+  const units = arrange(shown, filtered);
+  const unitCount = units.length;
+
+  const [movingId, setMovingId] = useState<string | null>(null);
+  const moving = movingId ? bottles.find((b) => b.id === movingId) : undefined;
+  const buzz = () => {
+    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+  };
+  const move = {
+    movingId: moving ? moving.id : null,
+    // 필터가 걸린 화면은 실제 자리와 달라서 옮기기를 막는다
+    canMove: !filtered,
+    pick: (id: string) => {
+      buzz();
+      setMovingId(id);
+    },
+    place: (slot: number) => {
+      if (moving) moveTo(moving.id, slot);
+      buzz();
+      setMovingId(null);
+    },
+  };
+
+  const roomRef = useRef<ComponentRef<typeof View>>(null);
+  const [sharing, setSharing] = useState(false);
+  const [shareError, setShareError] = useState(false);
   const roomW = ENTRY + unitCount * UNIT_W + (unitCount - 1) * GAP + TAIL;
 
   const [view, setView] = useState({ w: 0, h: 0 });
@@ -247,6 +337,28 @@ export default function Cabinet() {
     tx.value = withTiming(w <= viewW ? (viewW - w) / 2 : Math.min(0, Math.max(viewW - w, tx.value)), { duration: 260 });
   };
 
+  /** 진열장 전체(화면 밖으로 이어진 장까지)를 한 장의 이미지로 만들어 공유 시트를 연다. */
+  const share = async () => {
+    if (sharing || !roomRef.current) return;
+    setSharing(true);
+    setShareError(false);
+    try {
+      // 장이 길어도 가로 4096px을 넘지 않게 줄인다
+      const shrink = Math.min(1, 4096 / (roomW * PixelRatio.get()));
+      const uri = await captureRef(roomRef, {
+        format: 'png',
+        result: 'tmpfile',
+        width: roomW * shrink,
+        height: ROOM_H * shrink,
+      });
+      await Sharing.shareAsync(uri, { mimeType: 'image/png', UTI: 'public.png', dialogTitle: '나의 진열장' });
+    } catch {
+      setShareError(true);
+    } finally {
+      setSharing(false);
+    }
+  };
+
   const onLayout = (e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout;
     setView({ w: width, h: height });
@@ -268,7 +380,24 @@ export default function Cabinet() {
             <Ionicons name="chevron-back" size={22} color={color.label} />
           </Pressable>
           <Text style={styles.title}>진열장</Text>
-          <View style={styles.back} />
+          {Platform.OS === 'web' || bottles.length === 0 ? (
+            <View style={styles.back} />
+          ) : (
+            <Pressable
+              onPress={share}
+              disabled={sharing || !!moving}
+              accessibilityRole="button"
+              accessibilityLabel="진열장을 이미지로 저장하거나 공유하기"
+              hitSlop={12}
+              style={styles.back}
+            >
+              {sharing ? (
+                <ActivityIndicator color={color.glow} />
+              ) : (
+                <Ionicons name="share-outline" size={21} color={moving ? color.mist : color.label} />
+              )}
+            </Pressable>
+          )}
         </View>
         <FilterChips />
       </View>
@@ -276,7 +405,7 @@ export default function Cabinet() {
       <GestureDetector gesture={gesture}>
         <View style={styles.viewport} onLayout={onLayout}>
           {view.h > 0 && (
-            <Animated.View style={[styles.room, { width: roomW }, room]}>
+            <Animated.View ref={roomRef} collapsable={false} style={[styles.room, { width: roomW }, room]}>
               {/* 벽과 바닥 */}
               <LinearGradient colors={['#0B1612', '#16291F', '#101E18']} locations={[0, 0.45, 1]} style={styles.wallBack} />
               <LinearGradient colors={['#2A1A0F', '#120A05']} style={styles.floor} />
@@ -289,11 +418,13 @@ export default function Cabinet() {
                 </LinearGradient>
               </View>
 
-              {units.map((unit, i) => (
-                <View key={i} style={{ position: 'absolute', left: ENTRY + i * (UNIT_W + GAP), top: 0 }}>
-                  <Unit bottles={unit} />
-                </View>
-              ))}
+              <MoveContext.Provider value={move}>
+                {units.map((cells, i) => (
+                  <View key={i} style={{ position: 'absolute', left: ENTRY + i * (UNIT_W + GAP), top: 0 }}>
+                    <Unit cells={cells} />
+                  </View>
+                ))}
+              </MoveContext.Provider>
             </Animated.View>
           )}
 
@@ -307,12 +438,29 @@ export default function Cabinet() {
             ))}
           </Animated.View>
 
-          <Animated.View style={[styles.reset, { bottom: insets.bottom + space.m }, reset]}>
+          <Animated.View style={[styles.reset, { bottom: insets.bottom + (moving ? 84 : space.m) }, reset]}>
             <Pressable onPress={zoomOut} accessibilityRole="button" style={styles.resetHit}>
               <Ionicons name="contract-outline" size={16} color={color.labelInk} />
               <Text style={styles.resetLabel}>전체 보기</Text>
             </Pressable>
           </Animated.View>
+
+          {moving && (
+            <View style={[styles.moveBar, { bottom: insets.bottom + space.m }]}>
+              <Text style={styles.moveText} numberOfLines={2}>
+                옮길 자리를 누르세요. 다른 병을 누르면 자리를 바꿔요.
+              </Text>
+              <Pressable onPress={() => setMovingId(null)} accessibilityRole="button" hitSlop={10}>
+                <Text style={styles.moveCancel}>그만두기</Text>
+              </Pressable>
+            </View>
+          )}
+
+          {shareError && (
+            <Text style={[styles.hint, styles.error, { bottom: insets.bottom + space.l }]}>
+              이미지를 만들지 못했어요. 다시 눌러 주세요.
+            </Text>
+          )}
 
           {bottles.length === 0 && (
             <Text style={[styles.hint, { bottom: insets.bottom + space.l }]}>병을 찍어 담으면 선반에 차례로 놓여요.</Text>
@@ -386,6 +534,20 @@ const styles = StyleSheet.create({
   slot: { width: SLOT, alignItems: 'center', justifyContent: 'flex-end' },
   bottleHit: { width: '84%', height: BOTTLE, marginBottom: STAND },
   bottle: { width: '100%', height: '100%' },
+  // 집어 든 병은 선반에서 살짝 떠오른다
+  bottleHeld: { transform: [{ translateY: -12 }, { scale: 1.06 }] },
+  contactHeld: { opacity: 0.4, transform: [{ scaleX: 0.7 }] },
+  drop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'flex-end' },
+  dropMark: {
+    width: '58%',
+    height: BOTTLE * 0.82,
+    marginBottom: STAND,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: 'rgba(92,58,20,0.7)',
+    backgroundColor: 'rgba(255,255,255,0.22)',
+  },
   mirrorClip: { position: 'absolute', bottom: 0, width: '84%', height: STAND, overflow: 'hidden' },
   mirror: { width: '100%', height: BOTTLE, opacity: 0.28, transform: [{ scaleY: -1 }] },
   contact: {
@@ -424,5 +586,21 @@ const styles = StyleSheet.create({
     backgroundColor: color.glow,
   },
   resetLabel: { fontFamily: font.serifBold, fontSize: 13, color: color.labelInk },
+  moveBar: {
+    position: 'absolute',
+    left: space.m,
+    right: space.m,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.m,
+    paddingHorizontal: space.m,
+    paddingVertical: 12,
+    borderRadius: 14,
+    backgroundColor: color.glow,
+    boxShadow: '0 8px 20px rgba(0,0,0,0.5)',
+  },
+  moveText: { flex: 1, fontFamily: font.serif, fontSize: 13.5, lineHeight: 19, color: color.labelInk },
+  moveCancel: { fontFamily: font.serifBold, fontSize: 13.5, color: color.wine },
+  error: { color: '#F0A8A8' },
   hint: { position: 'absolute', alignSelf: 'center', fontFamily: font.serif, fontSize: 14, color: color.mist },
 });

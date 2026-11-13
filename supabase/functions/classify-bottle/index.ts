@@ -1,5 +1,5 @@
 // 술병 사진 → { category, name } 분류. Supabase Edge Function (Deno).
-// 배포: supabase functions deploy classify-bottle
+// 배포: supabase functions deploy classify-bottle  (verify_jwt는 supabase/config.toml에서 끔)
 // 시크릿: supabase secrets set ANTHROPIC_API_KEY=...
 const MODEL = Deno.env.get('CLASSIFY_MODEL') ?? 'claude-haiku-5-5';
 const CATEGORIES = [
@@ -19,6 +19,11 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ error: 'POST only' }, 405);
 
+  // 이 프로젝트의 publishable 키를 들고 온 요청만 받는다 (키 자체는 공개값이라 남용을 완전히 막지는 못한다)
+  const caller = req.headers.get('apikey') ?? '';
+  const known = `${Deno.env.get('SUPABASE_PUBLISHABLE_KEYS') ?? ''} ${Deno.env.get('SUPABASE_ANON_KEY') ?? ''}`;
+  if (caller.length < 20 || !known.includes(caller)) return json({ error: 'unknown apikey' }, 401);
+
   const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
   if (!apiKey) return json({ error: 'ANTHROPIC_API_KEY is not set' }, 500);
 
@@ -29,6 +34,7 @@ Deno.serve(async (req) => {
     image = body.image;
     mediaType = body.mediaType ?? 'image/jpeg';
     if (typeof image !== 'string' || image.length < 100) throw new Error('missing image');
+    if (image.length > 7_000_000) return json({ error: 'image too large' }, 413);
   } catch {
     return json({ error: 'Body must be { image: base64, mediaType? }' }, 400);
   }

@@ -19,7 +19,8 @@ export async function classifyBottle(photoUri: string): Promise<Guess | null> {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(KEY ? { Authorization: `Bearer ${KEY}`, apikey: KEY } : {}),
+        // 새 Supabase 키는 JWT가 아니라 Authorization이 아닌 apikey 헤더로 보낸다
+        ...(KEY ? { apikey: KEY } : {}),
       },
       body: JSON.stringify({ image, mediaType: 'image/jpeg' }),
     });

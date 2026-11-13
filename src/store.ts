@@ -17,6 +17,8 @@ export type Bottle = {
   width: number;
   height: number;
   createdAt: number;
+  /** 진열장에서의 자리 번호 (장·단·칸 순서로 0부터) */
+  slot?: number;
 };
 
 type State = {
@@ -27,6 +29,8 @@ type State = {
   clearJustAdded: () => void;
   addMany: (bottles: Bottle[]) => void;
   removeSamples: () => void;
+  /** 병을 진열장의 다른 자리로 옮긴다. 그 자리에 병이 있으면 서로 바꾼다. */
+  moveTo: (id: string, slot: number) => void;
   setFilter: (filter: CategoryId | 'all') => void;
   add: (bottle: Bottle) => void;
   update: (id: string, patch: Partial<Pick<Bottle, 'name' | 'category' | 'memo'>>) => void;
@@ -40,10 +44,20 @@ export const useCellar = create<State>()(
       filter: 'all',
       justAdded: null,
       clearJustAdded: () => set({ justAdded: null }),
-      addMany: (bottles) => set({ bottles: [...bottles, ...get().bottles] }),
+      addMany: (bottles) => set({ bottles: withSlots([...get().bottles, ...bottles]) }),
       removeSamples: () => set({ bottles: get().bottles.filter((b) => !b.id.startsWith('sample-')), filter: 'all' }),
       setFilter: (filter) => set({ filter }),
-      add: (bottle) => set({ bottles: [bottle, ...get().bottles], justAdded: bottle.id, filter: 'all' }),
+      add: (bottle) =>
+        set({ bottles: withSlots([bottle, ...get().bottles]), justAdded: bottle.id, filter: 'all' }),
+      moveTo: (id, slot) => {
+        const bottles = withSlots(get().bottles);
+        const moving = bottles.find((b) => b.id === id);
+        if (!moving || moving.slot === slot) return;
+        const from = moving.slot;
+        set({
+          bottles: bottles.map((b) => (b.id === id ? { ...b, slot } : b.slot === slot ? { ...b, slot: from } : b)),
+        });
+      },
       update: (id, patch) =>
         set({ bottles: get().bottles.map((b) => (b.id === id ? { ...b, ...patch } : b)) }),
       remove: (id) => {
@@ -62,9 +76,30 @@ export const useCellar = create<State>()(
       name: 'cellar-v1',
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ bottles: state.bottles }),
+      // 자리 번호가 없던 예전 데이터에도 자리를 준다
+      merge: (saved, current) => ({
+        ...current,
+        bottles: withSlots((saved as { bottles?: Bottle[] } | undefined)?.bottles ?? []),
+      }),
     },
   ),
 );
+
+/** 자리 번호가 없는 병에 앞에서부터 빈 자리를 준다. 이미 자리가 있는 병은 건드리지 않는다. */
+export function withSlots(bottles: Bottle[]): Bottle[] {
+  if (bottles.every((b) => b.slot !== undefined)) return bottles;
+  const taken = new Set(bottles.map((b) => b.slot).filter((n): n is number => n !== undefined));
+  let next = 0;
+  // 오래된 병부터 앞자리에 놓는다
+  const pending = bottles.filter((b) => b.slot === undefined).sort((a, b) => a.createdAt - b.createdAt);
+  const given = new Map<string, number>();
+  for (const b of pending) {
+    while (taken.has(next)) next++;
+    taken.add(next);
+    given.set(b.id, next);
+  }
+  return bottles.map((b) => (b.slot === undefined ? { ...b, slot: given.get(b.id) } : b));
+}
 
 /** 지금 모은 병에 있는 종류만, 많이 모은 순으로. */
 export function usedCategories(bottles: Bottle[]): { id: CategoryId; count: number }[] {

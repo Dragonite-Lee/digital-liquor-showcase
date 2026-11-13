@@ -34,18 +34,23 @@ npx expo run:android
 1. 빈 홈에서 **개발용: 샘플 병 18개 채우기**를 누르면 더미 병이 들어온다 (개발 빌드에만 보이는 버튼, 홈 오른쪽 아래 "샘플 지우기"로 제거).
 2. 홈: 병이 화면 안을 떠다니는지, 종류 필터가 모은 종류만 나오는지.
 3. 진열장: 옆으로 밀어 걷기, 두 손가락 확대, 두 번 눌러 확대·전체 보기.
+   병을 길게 눌러 다른 칸으로 옮기기, 오른쪽 위 공유 버튼으로 이미지 저장·공유.
 4. 실기기에서 병 하나 촬영 → 병만 떼어지는지, 홈에서 테두리 스티커로 튀어나오는지.
 5. 빌드가 `modules/subject-lift`에서 깨지면 그 오류 로그부터.
 
-## AI 분류 켜기 (선택)
+## AI 분류 켜기
+
+Supabase 프로젝트 `ieafmosojnvcveqawnmz`에 함수를 올리면 된다. 테이블·로그인은 필요 없다.
 
 ```bash
-supabase functions deploy classify-bottle
-supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
-cp .env.example .env   # EXPO_PUBLIC_CLASSIFY_URL, EXPO_PUBLIC_CLASSIFY_KEY(anon key) 채우기
+npx supabase login
+npx supabase link --project-ref ieafmosojnvcveqawnmz
+npx supabase secrets set ANTHROPIC_API_KEY=sk-ant-...   # console.anthropic.com에서 발급
+npx supabase functions deploy classify-bottle
+cp .env.example .env                                     # URL과 publishable 키가 이미 들어 있다
 ```
 
-URL이 비어 있으면 종류와 이름을 직접 고른다.
+`.env`를 바꾼 뒤에는 개발 서버를 다시 켠다. URL이 비어 있거나 호출이 실패하면 종류와 이름을 직접 적는다.
 
 ## 구조
 
@@ -63,3 +68,4 @@ supabase/functions       분류 함수
 
 - `modules/subject-lift`의 Swift·Kotlin 코드는 실기기 빌드로 검증하지 않았다. 첫 `expo run:ios`에서 컴파일 오류가 나면 여기부터 본다.
 - 분류 함수는 배포·호출 테스트 전.
+- 진열장 이미지 저장·공유(`react-native-view-shot`)는 실기기에서만 확인할 수 있다.

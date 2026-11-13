@@ -1,0 +1,6 @@
+project_id = "ieafmosojnvcveqawnmz"
+
+# 앱은 로그인 없이 publishable 키(apikey 헤더)로 부른다. 새 API 키는 JWT가 아니라
+# 플랫폼의 verify_jwt 검사를 통과하지 못하므로 끄고, 함수 안에서 키를 확인한다.
+[functions.classify-bottle]
+verify_jwt = false
