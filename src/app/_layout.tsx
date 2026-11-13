@@ -4,6 +4,7 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { color } from '@/theme';
@@ -14,6 +15,7 @@ export default function RootLayout() {
   if (!ready) return <View style={{ flex: 1, backgroundColor: color.glass }} />;
 
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <SafeAreaProvider>
       <StatusBar style="light" />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.glass } }}>
@@ -23,5 +25,6 @@ export default function RootLayout() {
         <Stack.Screen name="bottle/[id]" options={{ presentation: 'modal' }} />
       </Stack>
     </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
