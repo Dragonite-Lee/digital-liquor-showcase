@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "술장",
+    "slug": "digital-liquor-showcase",
+    "scheme": "suljang",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0F231D",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "kr.dragonite.suljang"
+    },
+    "android": {
+      "package": "kr.dragonite.suljang",
+      "adaptiveIcon": {
+        "backgroundColor": "#0F231D",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": { "favicon": "./assets/favicon.png", "bundler": "metro", "output": "single" },
+    "plugins": [
+      "expo-router",
+      ["expo-camera", { "cameraPermission": "술병을 촬영해 술장에 담으려면 카메라가 필요해요.", "recordAudioAndroid": false }],
+      ["expo-image-picker", { "photosPermission": "앨범에 있는 술병 사진을 술장에 담을 수 있어요." }],
+      ["expo-build-properties", { "ios": { "deploymentTarget": "17.0" } }]
+    ]
+  }
+}
