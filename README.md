@@ -55,11 +55,20 @@ cp .env.example .env                                     # URL과 publishable �
 ## 구조
 
 ```
-src/app/index.tsx        홈 — 떠다니는 병, 종류 필터(모은 종류만 생김)
-src/app/capture.tsx      촬영 → 병 떼어 내기 → 이름·종류·메모 → 담기
-src/app/cabinet.tsx      진열장 — 옆으로 이어지는 5단 장, 밀어서 걷기·확대
-src/app/bottle/[id].tsx  병 상세·수정·삭제
-src/store.ts             병 목록 저장
+src/app/                 화면 (expo-router)
+  index.tsx              홈 — 떠다니는 병, 종류 필터(모은 종류만 생김)
+  capture.tsx            카메라·앨범
+  cabinet.tsx            진열장 — 옮기기, 이미지 공유
+  bottle/[id].tsx        병 상세·수정·삭제
+src/components/
+  FloatingField.tsx      홈의 떠다니는 병
+  cabinet/               layout(치수·자리 배치) · Unit · Shelf · useRoomView(걷기·확대) · MoveContext
+  capture/Review.tsx     떼어 낸 병 확인, 이름·종류·메모
+src/lib/
+  useCapture.ts          촬영 → 누끼 + 라벨 읽기 → 저장 흐름
+  classify.ts            사진을 줄여 분류 함수 호출
+  images.ts              병 이미지 파일 보관
+src/store.ts             병 목록·자리 번호 저장 (zustand + AsyncStorage)
 modules/subject-lift     피사체 분리 네이티브 모듈 (Swift / Kotlin)
 supabase/functions       분류 함수
 ```

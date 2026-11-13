@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import { type LayoutChangeEvent, Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   type SharedValue,
@@ -9,17 +9,11 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 
+import { seeded } from '@/lib/seeded';
 import type { Bottle } from '@/store';
 import { color } from '@/theme';
 
 import { BottleImage } from './BottleImage';
-
-/** id에서 뽑은 고정 난수 — 병마다 움직임이 다르되, 다시 열어도 같은 궤적을 돈다. */
-export function seeded(id: string, salt: number): number {
-  let h = 2166136261 ^ salt;
-  for (let i = 0; i < id.length; i++) h = Math.imul(h ^ id.charCodeAt(i), 16777619);
-  return ((h >>> 0) % 1000) / 1000;
-}
 
 const TAU = Math.PI * 2;
 
@@ -72,9 +66,9 @@ function layout(bottles: Bottle[], W: number, H: number): Body[] {
   });
 }
 
-type DrifterProps = { body: Body; clock: SharedValue<number>; fresh: boolean; onPress: () => void };
+type DrifterProps = { body: Body; clock: SharedValue<number>; fresh: boolean; onOpen: (id: string) => void };
 
-function Drifter({ body, clock, fresh, onPress }: DrifterProps) {
+const Drifter = memo(function Drifter({ body, clock, fresh, onOpen }: DrifterProps) {
   const id = body.bottle.id;
   // 서로 다른 느린 주기 두 개를 겹쳐 같은 길을 되풀이하지 않는 것처럼 보이게 한다
   const wx = TAU / (17 + seeded(id, 1) * 14);
@@ -119,7 +113,7 @@ function Drifter({ body, clock, fresh, onPress }: DrifterProps) {
       ]}
     >
       <Pressable
-        onPress={onPress}
+        onPress={() => onOpen(id)}
         accessibilityRole="button"
         accessibilityLabel={`${body.bottle.name || '이름 없는 병'} 자세히 보기`}
         style={({ pressed }) => [StyleSheet.absoluteFill, pressed && { opacity: 0.7 }]}
@@ -128,7 +122,7 @@ function Drifter({ body, clock, fresh, onPress }: DrifterProps) {
       </Pressable>
     </Animated.View>
   );
-}
+});
 
 const DUST = Array.from({ length: 16 }, (_, i) => `dust${i}`);
 
@@ -166,6 +160,8 @@ export function FloatingField({ bottles, freshId, onOpen }: FieldProps) {
     clock.value = frame.timeSinceFirstFrame / 1000;
   }, !still);
 
+  const bodies = useMemo(() => layout(bottles, size.w, size.h), [bottles, size.w, size.h]);
+
   const onLayout = (e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout;
     setSize({ w: width, h: height });
@@ -178,8 +174,8 @@ export function FloatingField({ bottles, freshId, onOpen }: FieldProps) {
           <Dust key={id} id={id} clock={clock} />
         ))}
       </View>
-      {layout(bottles, size.w, size.h).map((body) => (
-        <Drifter key={body.bottle.id} body={body} clock={clock} fresh={body.bottle.id === freshId} onPress={() => onOpen(body.bottle.id)} />
+      {bodies.map((body) => (
+        <Drifter key={body.bottle.id} body={body} clock={clock} fresh={body.bottle.id === freshId} onOpen={onOpen} />
       ))}
     </View>
   );

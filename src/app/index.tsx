@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,6 +12,8 @@ import { FloatingField } from '@/components/FloatingField';
 import { sampleBottles } from '@/lib/samples';
 import { useCellar } from '@/store';
 import { color, font, space } from '@/theme';
+
+const openBottle = (id: string) => router.push({ pathname: '/bottle/[id]', params: { id } });
 
 export default function Home() {
   const insets = useSafeAreaInsets();
@@ -30,7 +32,10 @@ export default function Home() {
     return () => clearTimeout(timer);
   }, [justAdded, clearJustAdded]);
 
-  const shown = filter === 'all' ? bottles : bottles.filter((b) => b.category === filter);
+  const shown = useMemo(
+    () => (filter === 'all' ? bottles : bottles.filter((b) => b.category === filter)),
+    [bottles, filter],
+  );
 
   return (
     <View style={styles.screen}>
@@ -41,7 +46,7 @@ export default function Home() {
         <FloatingField
           bottles={shown}
           freshId={justAdded}
-          onOpen={(id) => router.push({ pathname: '/bottle/[id]', params: { id } })}
+          onOpen={openBottle}
         />
       </View>
 

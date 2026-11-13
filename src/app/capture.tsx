@@ -1,213 +1,39 @@
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
-import { useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Linking,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { useRef } from 'react';
+import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { isAvailable, liftSubject } from 'subject-lift';
 
-import { CategoryPicker } from '@/components/CategoryPicker';
-import type { CategoryId } from '@/lib/categories';
-import { classifyBottle, classifyEnabled } from '@/lib/classify';
-import { keepImage } from '@/lib/images';
-import { newId, useCellar } from '@/store';
+import { Review } from '@/components/capture/Review';
+import { useCapture } from '@/lib/useCapture';
 import { color, font, space } from '@/theme';
 
-type Cut = { uri: string; stickerUri?: string; width: number; height: number; lifted: boolean };
-type Stage = 'camera' | 'lifting' | 'review';
+// 누끼가 선명하도록 원본은 높은 화질로 받는다 (분류 서버로는 줄여서 보낸다)
+const PHOTO_QUALITY = 0.85;
 
 export default function Capture() {
   const insets = useSafeAreaInsets();
   const camera = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
-  const add = useCellar((s) => s.add);
-
-  const [stage, setStage] = useState<Stage>('camera');
-  const [photo, setPhoto] = useState<string | null>(null);
-  const [cut, setCut] = useState<Cut | null>(null);
-  const [name, setName] = useState('');
-  const [category, setCategory] = useState<CategoryId>('etc');
-  const [memo, setMemo] = useState('');
-  const [guessing, setGuessing] = useState(false);
-  const [guessed, setGuessed] = useState(false);
-  const [saveError, setSaveError] = useState(false);
-  // 사용자가 직접 고친 값은 AI 추정이 뒤늦게 와도 덮어쓰지 않는다
-  const touched = useRef({ name: false, category: false });
-
-  const reset = () => {
-    setStage('camera');
-    setPhoto(null);
-    setCut(null);
-    setName('');
-    setCategory('etc');
-    setMemo('');
-    setSaveError(false);
-    setGuessed(false);
-    touched.current = { name: false, category: false };
-  };
-
-  const process = async (uri: string, width: number, height: number) => {
-    setPhoto(uri);
-    setStage('lifting');
-    touched.current = { name: false, category: false };
-
-    setGuessing(classifyEnabled);
-    const guess = classifyBottle(uri);
-
-    let next: Cut = { uri, width, height, lifted: false };
-    if (isAvailable()) {
-      try {
-        next = { ...(await liftSubject(uri)), lifted: true };
-      } catch {
-        // 병을 못 찾으면 사진 그대로 담는다
-      }
-    }
-    setCut(next);
-    setStage('review');
-    if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-
-    const found = await guess;
-    if (found) {
-      if (!touched.current.category) setCategory(found.category);
-      if (!touched.current.name && found.name) {
-        setName(found.name);
-        setGuessed(true);
-      }
-    }
-    setGuessing(false);
-  };
+  const capture = useCapture();
+  const lifting = capture.stage === 'lifting';
 
   const shoot = async () => {
-    const shot = await camera.current?.takePictureAsync({ quality: 0.6 });
-    if (shot) await process(shot.uri, shot.width, shot.height);
+    const shot = await camera.current?.takePictureAsync({ quality: PHOTO_QUALITY });
+    if (shot) await capture.process(shot.uri, shot.width, shot.height);
   };
 
   const pick = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.6 });
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: PHOTO_QUALITY });
     const asset = result.canceled ? null : result.assets[0];
-    if (asset) await process(asset.uri, asset.width, asset.height);
+    if (asset) await capture.process(asset.uri, asset.width, asset.height);
   };
 
-  const save = () => {
-    if (!cut) return;
-    try {
-      const id = newId();
-      const image = keepImage(cut.uri, id);
-      const sticker = cut.stickerUri ? keepImage(cut.stickerUri, `${id}-sticker`) : undefined;
-      add({
-        id,
-        name: name.trim(),
-        category,
-        memo: memo.trim(),
-        image,
-        sticker,
-        width: cut.width,
-        height: cut.height,
-        createdAt: Date.now(),
-      });
-      router.back();
-    } catch {
-      setSaveError(true);
-    }
-  };
-
-  if (stage === 'review' && cut) {
-    return (
-      <KeyboardAvoidingView style={styles.review} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView
-          contentContainerStyle={{ padding: space.l, paddingTop: insets.top + space.m, paddingBottom: insets.bottom + space.l }}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={styles.stageBox}>
-            <View style={styles.halo} />
-            <Image
-              source={{ uri: cut.uri }}
-              style={[styles.cutout, !cut.lifted && styles.cutoutPlain]}
-              contentFit={cut.lifted ? 'contain' : 'cover'}
-              accessibilityLabel="방금 찍은 병"
-            />
-          </View>
-          {!cut.lifted && (
-            <Text style={styles.notice}>병만 떼어 내지 못해 사진 그대로 담아요. 병을 화면 가운데에 두고 다시 찍으면 잘 돼요.</Text>
-          )}
-
-          <View style={styles.nameRow}>
-            <TextInput
-              value={name}
-              onChangeText={(v) => {
-                touched.current.name = true;
-                setName(v);
-              }}
-              placeholder={guessing ? '라벨을 읽는 중…' : '병 이름'}
-              placeholderTextColor={color.mist}
-              style={styles.name}
-              accessibilityLabel="병 이름"
-              returnKeyType="done"
-            />
-            {guessing ? (
-              <ActivityIndicator color={color.brass} />
-            ) : (
-              <Ionicons name="pencil" size={16} color={color.mist} />
-            )}
-          </View>
-          <Text style={styles.nameHint}>
-            {guessing
-              ? '라벨을 읽고 있어요.'
-              : guessed
-                ? '라벨에서 읽은 이름이에요. 다르면 눌러서 고쳐 주세요.'
-                : classifyEnabled
-                  ? '라벨을 읽지 못했어요. 이름을 직접 적어 주세요.'
-                  : '이름과 종류를 직접 적어 주세요.'}
-          </Text>
-
-          <CategoryPicker
-            value={category}
-            onChange={(id) => {
-              touched.current.category = true;
-              setCategory(id);
-            }}
-          />
-
-          <View style={styles.note}>
-            <TextInput
-              value={memo}
-              onChangeText={setMemo}
-              placeholder="누구와, 어디서, 어떤 맛이었는지"
-              placeholderTextColor="#9A8C6C"
-              style={styles.noteText}
-              accessibilityLabel="메모"
-              multiline
-              maxLength={120}
-            />
-          </View>
-
-          {saveError && <Text style={styles.error}>병을 저장하지 못했어요. 저장 공간을 확인하고 다시 눌러 주세요.</Text>}
-
-          <View style={styles.actions}>
-            <Pressable onPress={reset} accessibilityRole="button" style={({ pressed }) => [styles.ghost, pressed && styles.pressed]}>
-              <Text style={styles.ghostLabel}>다시 찍기</Text>
-            </Pressable>
-            <Pressable onPress={save} accessibilityRole="button" style={({ pressed }) => [styles.primary, pressed && styles.pressed]}>
-              <Text style={styles.primaryLabel}>술장에 담기</Text>
-            </Pressable>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    );
+  if (capture.stage === 'review' && capture.cut) {
+    return <Review capture={capture} cut={capture.cut} onSaved={() => router.back()} />;
   }
 
   const close = (
@@ -245,13 +71,13 @@ export default function Capture() {
 
   return (
     <View style={styles.camera}>
-      {stage === 'lifting' && photo ? (
-        <Image source={{ uri: photo }} style={StyleSheet.absoluteFill} contentFit="cover" />
+      {lifting && capture.photo ? (
+        <Image source={{ uri: capture.photo }} style={StyleSheet.absoluteFill} contentFit="cover" />
       ) : (
         <CameraView ref={camera} style={StyleSheet.absoluteFill} facing="back" />
       )}
 
-      {stage === 'lifting' ? (
+      {lifting ? (
         <View style={[StyleSheet.absoluteFill, styles.center, styles.dim]}>
           <ActivityIndicator size="large" color={color.glow} />
           <Text style={styles.working}>병만 떼어 내는 중…</Text>
@@ -343,51 +169,9 @@ const styles = StyleSheet.create({
   },
   shutterCore: { width: 62, height: 62, borderRadius: 31, backgroundColor: color.glow },
   pressed: { opacity: 0.6 },
-
   askTitle: { fontFamily: font.serifBold, fontSize: 19, color: color.label, textAlign: 'center', marginBottom: space.l },
   askButton: { flex: 0, alignSelf: 'center', paddingHorizontal: space.l },
   askAlt: { marginTop: space.m, padding: space.s },
-
-  review: { flex: 1, backgroundColor: color.glass },
-  stageBox: { height: 320, alignItems: 'center', justifyContent: 'flex-end', marginBottom: space.l },
-  halo: {
-    position: 'absolute',
-    bottom: 10,
-    width: 340,
-    height: 340,
-    backgroundImage: 'radial-gradient(circle, rgba(244,228,184,0.22) 0%, rgba(244,228,184,0) 68%)',
-  },
-  cutout: { width: '70%', height: 300 },
-  cutoutPlain: { width: 200, borderRadius: 8 },
-  notice: { fontFamily: font.serif, fontSize: 13, lineHeight: 20, color: color.mist, marginBottom: space.m },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: color.glassLine,
-  },
-  nameHint: { fontFamily: font.serif, fontSize: 12.5, color: color.mist, marginTop: 6, marginBottom: space.m },
-  name: { flex: 1, fontFamily: font.serifBold, fontSize: 24, color: color.label, paddingVertical: 10 },
-  note: {
-    backgroundColor: color.label,
-    borderRadius: 2,
-    padding: space.m,
-    marginTop: space.m,
-    minHeight: 110,
-    transform: [{ rotate: '-0.6deg' }],
-  },
-  noteText: { fontFamily: font.pen, fontSize: 24, lineHeight: 28, color: color.labelInk, padding: 0, minHeight: 80, textAlignVertical: 'top' },
-  error: { fontFamily: font.serif, fontSize: 13, color: '#F0A8A8', marginTop: space.m },
-  actions: { flexDirection: 'row', gap: space.s, marginTop: space.l },
-  ghost: {
-    height: 54,
-    paddingHorizontal: space.l,
-    borderRadius: 27,
-    borderWidth: 1,
-    borderColor: color.glassLine,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   ghostLabel: { fontFamily: font.serif, fontSize: 16, color: color.label },
   primary: { flex: 1, height: 54, borderRadius: 27, backgroundColor: color.glow, alignItems: 'center', justifyContent: 'center' },
   primaryLabel: { fontFamily: font.serifBold, fontSize: 17, color: color.labelInk },
