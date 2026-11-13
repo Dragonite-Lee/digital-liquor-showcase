@@ -22,6 +22,11 @@ export type Bottle = {
 type State = {
   bottles: Bottle[];
   filter: CategoryId | 'all';
+  /** 방금 담은 병 — 홈에서 등장 연출을 한 번 보여 주고 지운다 */
+  justAdded: string | null;
+  clearJustAdded: () => void;
+  addMany: (bottles: Bottle[]) => void;
+  removeSamples: () => void;
   setFilter: (filter: CategoryId | 'all') => void;
   add: (bottle: Bottle) => void;
   update: (id: string, patch: Partial<Pick<Bottle, 'name' | 'category' | 'memo'>>) => void;
@@ -33,8 +38,12 @@ export const useCellar = create<State>()(
     (set, get) => ({
       bottles: [],
       filter: 'all',
+      justAdded: null,
+      clearJustAdded: () => set({ justAdded: null }),
+      addMany: (bottles) => set({ bottles: [...bottles, ...get().bottles] }),
+      removeSamples: () => set({ bottles: get().bottles.filter((b) => !b.id.startsWith('sample-')), filter: 'all' }),
       setFilter: (filter) => set({ filter }),
-      add: (bottle) => set({ bottles: [bottle, ...get().bottles] }),
+      add: (bottle) => set({ bottles: [bottle, ...get().bottles], justAdded: bottle.id, filter: 'all' }),
       update: (id, patch) =>
         set({ bottles: get().bottles.map((b) => (b.id === id ? { ...b, ...patch } : b)) }),
       remove: (id) => {

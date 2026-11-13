@@ -22,12 +22,42 @@
       },
       "predictiveBackGestureEnabled": false
     },
-    "web": { "favicon": "./assets/favicon.png", "bundler": "metro", "output": "single" },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro",
+      "output": "single"
+    },
     "plugins": [
       "expo-router",
-      ["expo-camera", { "cameraPermission": "술병을 촬영해 술장에 담으려면 카메라가 필요해요.", "recordAudioAndroid": false }],
-      ["expo-image-picker", { "photosPermission": "앨범에 있는 술병 사진을 술장에 담을 수 있어요." }],
-      ["expo-build-properties", { "ios": { "deploymentTarget": "17.0" } }]
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 180,
+          "backgroundColor": "#0F231D"
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "술병을 촬영해 술장에 담으려면 카메라가 필요해요.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "앨범에 있는 술병 사진을 술장에 담을 수 있어요."
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "17.0"
+          }
+        }
+      ]
     ]
   }
 }

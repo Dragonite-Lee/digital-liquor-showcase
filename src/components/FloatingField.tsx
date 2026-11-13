@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { type LayoutChangeEvent, Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   type SharedValue,
@@ -6,6 +6,7 @@ import Animated, {
   useFrameCallback,
   useReducedMotion,
   useSharedValue,
+  withSpring,
 } from 'react-native-reanimated';
 
 import type { Bottle } from '@/store';
@@ -71,7 +72,9 @@ function layout(bottles: Bottle[], W: number, H: number): Body[] {
   });
 }
 
-function Drifter({ body, clock, onPress }: { body: Body; clock: SharedValue<number>; onPress: () => void }) {
+type DrifterProps = { body: Body; clock: SharedValue<number>; fresh: boolean; onPress: () => void };
+
+function Drifter({ body, clock, fresh, onPress }: DrifterProps) {
   const id = body.bottle.id;
   // 서로 다른 느린 주기 두 개를 겹쳐 같은 길을 되풀이하지 않는 것처럼 보이게 한다
   const wx = TAU / (17 + seeded(id, 1) * 14);
@@ -82,6 +85,12 @@ function Drifter({ body, clock, onPress }: { body: Body; clock: SharedValue<numb
   const spin = 4 + seeded(id, 6) * 7;
   const { ax, ay } = body;
 
+  // 방금 담은 병은 작게 시작해 통 하고 튀어나온다
+  const pop = useSharedValue(fresh ? 0.15 : 1);
+  useEffect(() => {
+    if (fresh) pop.value = withSpring(1, { damping: 9, stiffness: 110 });
+  }, [fresh, pop]);
+
   const drift = useAnimatedStyle(() => {
     const t = clock.value;
     return {
@@ -89,6 +98,7 @@ function Drifter({ body, clock, onPress }: { body: Body; clock: SharedValue<numb
         { translateX: ax * (0.72 * Math.sin(t * wx + px) + 0.28 * Math.sin(t * wx * 2.7 + py)) },
         { translateY: ay * (0.72 * Math.sin(t * wy + py) + 0.28 * Math.sin(t * wy * 2.3 + px)) },
         { rotate: `${spin * Math.sin(t * wr + px + py)}deg` },
+        { scale: pop.value },
       ],
     };
   });
@@ -102,7 +112,7 @@ function Drifter({ body, clock, onPress }: { body: Body; clock: SharedValue<numb
           top: body.y - body.h / 2,
           width: body.w,
           height: body.h,
-          zIndex: Math.round(body.depth * 100),
+          zIndex: fresh ? 200 : Math.round(body.depth * 100),
           opacity: 0.78 + body.depth * 0.22,
         },
         drift,
@@ -145,7 +155,9 @@ function Dust({ id, clock }: { id: string; clock: SharedValue<number> }) {
   );
 }
 
-export function FloatingField({ bottles, onOpen }: { bottles: Bottle[]; onOpen: (id: string) => void }) {
+type FieldProps = { bottles: Bottle[]; freshId: string | null; onOpen: (id: string) => void };
+
+export function FloatingField({ bottles, freshId, onOpen }: FieldProps) {
   const still = useReducedMotion();
   const clock = useSharedValue(0);
   const [size, setSize] = useState({ w: 0, h: 0 });
@@ -167,7 +179,7 @@ export function FloatingField({ bottles, onOpen }: { bottles: Bottle[]; onOpen: 
         ))}
       </View>
       {layout(bottles, size.w, size.h).map((body) => (
-        <Drifter key={body.bottle.id} body={body} clock={clock} onPress={() => onOpen(body.bottle.id)} />
+        <Drifter key={body.bottle.id} body={body} clock={clock} fresh={body.bottle.id === freshId} onPress={() => onOpen(body.bottle.id)} />
       ))}
     </View>
   );

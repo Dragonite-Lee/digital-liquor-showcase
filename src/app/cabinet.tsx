@@ -8,6 +8,7 @@ import {
   usePanGesture,
   usePinchGesture,
   useSimultaneousGestures,
+  useTapGesture,
 } from 'react-native-gesture-handler';
 import Animated, {
   cancelAnimation,
@@ -49,6 +50,7 @@ const FLOOR = 120;
 const ROOM_H = HEADROOM + UNIT_H + FLOOR;
 
 const MAX_ZOOM = 3.2;
+const TAP_ZOOM = 2.2;
 
 function Standing({ bottle }: { bottle: Bottle }) {
   return (
@@ -207,7 +209,24 @@ export default function Cabinet() {
     },
   });
 
-  const gesture = useSimultaneousGestures(pan, pinch);
+  // 한 손으로도 볼 수 있게: 두 번 누르면 그 자리를 확대, 다시 두 번 누르면 전체 보기
+  const doubleTap = useTapGesture({
+    numberOfTaps: 2,
+    onActivate: (e) => {
+      'worklet';
+      const next = zoom.value > 1.05 ? 1 : TAP_ZOOM;
+      const k = next / zoom.value;
+      const w = roomW * fit * next;
+      const h = ROOM_H * fit * next;
+      const x = e.x - (e.x - tx.value) * k;
+      const y = e.y - (e.y - ty.value) * k;
+      zoom.value = withTiming(next, { duration: 260 });
+      tx.value = withTiming(w <= viewW ? (viewW - w) / 2 : Math.min(0, Math.max(viewW - w, x)), { duration: 260 });
+      ty.value = withTiming(h <= viewH ? (viewH - h) / 2 : Math.min(0, Math.max(viewH - h, y)), { duration: 260 });
+    },
+  });
+
+  const gesture = useSimultaneousGestures(pan, pinch, doubleTap);
 
   const room = useAnimatedStyle(() => ({
     transform: [{ translateX: tx.value }, { translateY: ty.value }, { scale: fit * zoom.value }],
