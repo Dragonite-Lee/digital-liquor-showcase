@@ -66,22 +66,44 @@ enum SubjectLifter {
       output = output.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
     }
 
-    let context = CIContext()
-    guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
-      let png = context.pngRepresentation(of: output, format: .RGBA8, colorSpace: colorSpace)
-    else {
-      throw Exception(name: "ERR_SUBJECT_LIFT_ENCODE", description: "Could not encode the cutout")
-    }
+    // 홈 화면용: 병 둘레에 얇은 크림색 테두리를 두른 스티커 버전
+    let radius = max(6, (max(output.extent.width, output.extent.height) * 0.014).rounded())
+    let zero = CIVector(x: 0, y: 0, z: 0, w: 0)
+    let rim = output
+      .applyingFilter("CIMorphologyMaximum", parameters: [kCIInputRadiusKey: radius])
+      .applyingFilter("CIColorMatrix", parameters: [
+        "inputRVector": zero,
+        "inputGVector": zero,
+        "inputBVector": zero,
+        "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 1),
+        "inputBiasVector": CIVector(x: 0.97, y: 0.94, z: 0.87, w: 0)
+      ])
+    let sticker = output
+      .composited(over: rim)
+      .cropped(to: output.extent.insetBy(dx: -(radius + 1), dy: -(radius + 1)))
 
-    let target = FileManager.default.temporaryDirectory
-      .appendingPathComponent("lift-\(UUID().uuidString).png")
-    try png.write(to: target, options: .atomic)
+    let id = UUID().uuidString
+    let cutoutURL = try write(output, name: "lift-\(id).png")
+    let stickerURL = try write(sticker, name: "lift-\(id)-sticker.png")
 
     return [
-      "uri": target.absoluteString,
+      "uri": cutoutURL.absoluteString,
+      "stickerUri": stickerURL.absoluteString,
       "width": Int(output.extent.width.rounded()),
       "height": Int(output.extent.height.rounded())
     ]
+  }
+
+  private static func write(_ image: CIImage, name: String) throws -> URL {
+    let context = CIContext()
+    guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
+      let png = context.pngRepresentation(of: image, format: .RGBA8, colorSpace: colorSpace)
+    else {
+      throw Exception(name: "ERR_SUBJECT_LIFT_ENCODE", description: "Could not encode the cutout")
+    }
+    let target = FileManager.default.temporaryDirectory.appendingPathComponent(name)
+    try png.write(to: target, options: .atomic)
+    return target
   }
 
   private static func centerInstance(of mask: CVPixelBuffer) -> Int? {

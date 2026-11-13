@@ -1,6 +1,11 @@
 package expo.modules.subjectlift
 
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffColorFilter
 import android.net.Uri
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.segmentation.subject.SubjectSegmentation
@@ -11,7 +16,11 @@ import expo.modules.kotlin.modules.ModuleDefinition
 import java.io.File
 import java.io.FileOutputStream
 import java.util.UUID
+import kotlin.math.PI
+import kotlin.math.ceil
+import kotlin.math.cos
 import kotlin.math.max
+import kotlin.math.sin
 import kotlin.math.roundToInt
 
 class SubjectLiftModule : Module() {
@@ -50,11 +59,15 @@ class SubjectLiftModule : Module() {
           }
           try {
             val cutout = scaleDown(cropToContent(foreground))
-            val target = File(context.cacheDir, "lift-${UUID.randomUUID()}.png")
+            val id = UUID.randomUUID()
+            val target = File(context.cacheDir, "lift-$id.png")
             FileOutputStream(target).use { cutout.compress(Bitmap.CompressFormat.PNG, 100, it) }
+            val stickerTarget = File(context.cacheDir, "lift-$id-sticker.png")
+            FileOutputStream(stickerTarget).use { withRim(cutout).compress(Bitmap.CompressFormat.PNG, 100, it) }
             promise.resolve(
               mapOf(
                 "uri" to Uri.fromFile(target).toString(),
+                "stickerUri" to Uri.fromFile(stickerTarget).toString(),
                 "width" to cutout.width,
                 "height" to cutout.height
               )
@@ -95,6 +108,24 @@ class SubjectLiftModule : Module() {
       throw IllegalStateException("Cutout is empty")
     }
     return Bitmap.createBitmap(source, left, top, right - left + 1, bottom - top + 1)
+  }
+
+  /** 홈 화면용: 병 둘레에 얇은 크림색 테두리를 두른 스티커 버전. */
+  private fun withRim(source: Bitmap): Bitmap {
+    val radius = max(6f, max(source.width, source.height) * 0.014f)
+    val pad = ceil(radius).toInt() + 1
+    val out = Bitmap.createBitmap(source.width + pad * 2, source.height + pad * 2, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(out)
+    val rim = Paint(Paint.FILTER_BITMAP_FLAG).apply {
+      colorFilter = PorterDuffColorFilter(Color.rgb(247, 240, 223), PorterDuff.Mode.SRC_IN)
+    }
+    val steps = 32
+    for (i in 0 until steps) {
+      val angle = 2 * PI * i / steps
+      canvas.drawBitmap(source, pad + radius * cos(angle).toFloat(), pad + radius * sin(angle).toFloat(), rim)
+    }
+    canvas.drawBitmap(source, pad.toFloat(), pad.toFloat(), null)
+    return out
   }
 
   private fun scaleDown(source: Bitmap, maxSide: Int = 1400): Bitmap {

@@ -27,7 +27,7 @@ import { keepImage } from '@/lib/images';
 import { newId, useCellar } from '@/store';
 import { color, font, space } from '@/theme';
 
-type Cut = { uri: string; width: number; height: number; lifted: boolean };
+type Cut = { uri: string; stickerUri?: string; width: number; height: number; lifted: boolean };
 type Stage = 'camera' | 'lifting' | 'review';
 
 export default function Capture() {
@@ -43,6 +43,7 @@ export default function Capture() {
   const [category, setCategory] = useState<CategoryId>('etc');
   const [memo, setMemo] = useState('');
   const [guessing, setGuessing] = useState(false);
+  const [guessed, setGuessed] = useState(false);
   const [saveError, setSaveError] = useState(false);
   // 사용자가 직접 고친 값은 AI 추정이 뒤늦게 와도 덮어쓰지 않는다
   const touched = useRef({ name: false, category: false });
@@ -55,6 +56,7 @@ export default function Capture() {
     setCategory('etc');
     setMemo('');
     setSaveError(false);
+    setGuessed(false);
     touched.current = { name: false, category: false };
   };
 
@@ -81,7 +83,10 @@ export default function Capture() {
     const found = await guess;
     if (found) {
       if (!touched.current.category) setCategory(found.category);
-      if (!touched.current.name && found.name) setName(found.name);
+      if (!touched.current.name && found.name) {
+        setName(found.name);
+        setGuessed(true);
+      }
     }
     setGuessing(false);
   };
@@ -102,12 +107,14 @@ export default function Capture() {
     try {
       const id = newId();
       const image = keepImage(cut.uri, id);
+      const sticker = cut.stickerUri ? keepImage(cut.stickerUri, `${id}-sticker`) : undefined;
       add({
         id,
         name: name.trim(),
         category,
         memo: memo.trim(),
         image,
+        sticker,
         width: cut.width,
         height: cut.height,
         createdAt: Date.now(),
@@ -151,8 +158,21 @@ export default function Capture() {
               accessibilityLabel="병 이름"
               returnKeyType="done"
             />
-            {guessing && <ActivityIndicator color={color.brass} />}
+            {guessing ? (
+              <ActivityIndicator color={color.brass} />
+            ) : (
+              <Ionicons name="pencil" size={16} color={color.mist} />
+            )}
           </View>
+          <Text style={styles.nameHint}>
+            {guessing
+              ? '라벨을 읽고 있어요.'
+              : guessed
+                ? '라벨에서 읽은 이름이에요. 다르면 눌러서 고쳐 주세요.'
+                : classifyEnabled
+                  ? '라벨을 읽지 못했어요. 이름을 직접 적어 주세요.'
+                  : '이름과 종류를 직접 적어 주세요.'}
+          </Text>
 
           <CategoryPicker
             value={category}
@@ -345,8 +365,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: color.glassLine,
-    marginBottom: space.m,
   },
+  nameHint: { fontFamily: font.serif, fontSize: 12.5, color: color.mist, marginTop: 6, marginBottom: space.m },
   name: { flex: 1, fontFamily: font.serifBold, fontSize: 24, color: color.label, paddingVertical: 10 },
   note: {
     backgroundColor: color.label,

@@ -10,7 +10,10 @@ export type Bottle = {
   name: string;
   category: CategoryId;
   memo: string;
+  /** 깨끗한 누끼 (진열장·상세) */
   image: string;
+  /** 테두리를 두른 스티커 (홈). 누끼를 못 딴 병에는 없다. */
+  sticker?: string;
   width: number;
   height: number;
   createdAt: number;
@@ -36,7 +39,10 @@ export const useCellar = create<State>()(
         set({ bottles: get().bottles.map((b) => (b.id === id ? { ...b, ...patch } : b)) }),
       remove: (id) => {
         const target = get().bottles.find((b) => b.id === id);
-        if (target) dropImage(target.image);
+        if (target) {
+          dropImage(target.image);
+          if (target.sticker) dropImage(target.sticker);
+        }
         const bottles = get().bottles.filter((b) => b.id !== id);
         const filter = get().filter;
         const stillUsed = filter === 'all' || bottles.some((b) => b.category === filter);

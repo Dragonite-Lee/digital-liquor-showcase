@@ -114,7 +114,7 @@ function Drifter({ body, clock, onPress }: { body: Body; clock: SharedValue<numb
         accessibilityLabel={`${body.bottle.name || '이름 없는 병'} 자세히 보기`}
         style={({ pressed }) => [StyleSheet.absoluteFill, pressed && { opacity: 0.7 }]}
       >
-        <BottleImage bottle={body.bottle} style={StyleSheet.absoluteFill} />
+        <BottleImage bottle={body.bottle} style={StyleSheet.absoluteFill} sticker />
       </Pressable>
     </Animated.View>
   );

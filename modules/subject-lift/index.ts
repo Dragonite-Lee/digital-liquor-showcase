@@ -1,6 +1,7 @@
 import { requireOptionalNativeModule } from 'expo';
 
-export type LiftResult = { uri: string; width: number; height: number };
+/** uri: 깨끗한 누끼, stickerUri: 얇은 테두리를 두른 스티커 버전 */
+export type LiftResult = { uri: string; stickerUri?: string; width: number; height: number };
 
 type SubjectLiftNative = {
   isAvailable(): boolean;
