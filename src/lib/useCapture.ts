@@ -9,7 +9,15 @@ import type { CategoryId } from './categories';
 import { classifyBottle, classifyEnabled } from './classify';
 import { keepImage } from './images';
 
-export type Cut = { uri: string; stickerUri?: string; width: number; height: number; lifted: boolean };
+export type Cut = {
+  uri: string;
+  stickerUri?: string;
+  width: number;
+  height: number;
+  lifted: boolean;
+  /** 누끼를 못 딴 이유 (개발 빌드 화면에만 보여 준다) */
+  liftError?: string;
+};
 export type Stage = 'camera' | 'lifting' | 'review';
 /** off: 분류 꺼짐 · reading: 라벨 읽는 중 · found: 이름을 읽음 · missed: 못 읽음 */
 export type GuessState = 'off' | 'reading' | 'found' | 'missed';
@@ -59,9 +67,13 @@ export function useCapture() {
     if (isAvailable()) {
       try {
         next = { ...(await liftSubject(uri)), lifted: true };
-      } catch {
+      } catch (e) {
         // 병을 못 찾으면 사진 그대로 담는다
+        next.liftError = e instanceof Error ? e.message : String(e);
+        console.warn('[subject-lift]', next.liftError);
       }
+    } else {
+      next.liftError = '피사체 분리 모듈을 쓸 수 없는 환경 (웹·시뮬레이터·Expo Go, 또는 네이티브 모듈 미연결)';
     }
     if (mine !== run.current) return;
     setCut(next);

@@ -4,14 +4,14 @@ import { categoryLabel } from '@/lib/categories';
 import { usedCategories, useCellar } from '@/store';
 import { color, font, space } from '@/theme';
 
-/** 모은 술에 있는 종류만 필터로 나온다. 한 종류뿐이면 필터가 필요 없으니 숨긴다. */
+/** 모은 술에 있는 종류만 필터로 나온다. 병이 하나도 없으면 숨긴다. */
 export function FilterChips() {
   const bottles = useCellar((s) => s.bottles);
   const filter = useCellar((s) => s.filter);
   const setFilter = useCellar((s) => s.setFilter);
   const used = usedCategories(bottles);
 
-  if (used.length < 2) return null;
+  if (used.length === 0) return null;
 
   const chips = [{ id: 'all' as const, label: '전체', count: bottles.length }].concat(
     used.map((u) => ({ id: u.id as never, label: categoryLabel(u.id), count: u.count })),

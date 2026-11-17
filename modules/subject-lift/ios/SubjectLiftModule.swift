@@ -39,31 +39,18 @@ enum SubjectLifter {
       throw Exception(name: "ERR_SUBJECT_LIFT_LOAD", description: "Could not read the photo")
     }
 
-    let handler = VNImageRequestHandler(ciImage: source, options: [:])
-    let request = VNGenerateForegroundInstanceMaskRequest()
-    try handler.perform([request])
-
-    guard let observation = request.results?.first, !observation.allInstances.isEmpty else {
+    // 1차로 사진 전체에서 찾고, 병이 작게 찍혀 못 찾으면 가운데(촬영 가이드 영역)만 잘라 다시 찾는다.
+    var found = try cutout(from: source)
+    if found == nil {
+      let full = source.extent
+      let middle = source.cropped(to: full.insetBy(dx: full.width * 0.2, dy: full.height * 0.18))
+      let moved = middle.transformed(
+        by: CGAffineTransform(translationX: -middle.extent.minX, y: -middle.extent.minY)
+      )
+      found = try cutout(from: moved)
+    }
+    guard let output = found else {
       throw Exception(name: "ERR_SUBJECT_LIFT_EMPTY", description: "No subject found in the photo")
-    }
-
-    // 여러 물체가 잡히면 화면 가운데에 있는 것만 고른다. 가운데가 배경이면 전부 쓴다.
-    var instances = observation.allInstances
-    if let center = centerInstance(of: observation.instanceMask), instances.contains(center) {
-      instances = IndexSet(integer: center)
-    }
-
-    let buffer = try observation.generateMaskedImage(
-      ofInstances: instances,
-      from: handler,
-      croppedToInstancesExtent: true
-    )
-
-    var output = CIImage(cvPixelBuffer: buffer)
-    let longest = max(output.extent.width, output.extent.height)
-    if longest > maxSide {
-      let scale = maxSide / longest
-      output = output.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
     }
 
     // 홈 화면용: 병 둘레에 얇은 크림색 테두리를 두른 스티커 버전
@@ -92,6 +79,37 @@ enum SubjectLifter {
       "width": Int(output.extent.width.rounded()),
       "height": Int(output.extent.height.rounded())
     ]
+  }
+
+  /// 사진에서 피사체만 남긴 이미지. 피사체가 없으면 nil.
+  private static func cutout(from image: CIImage) throws -> CIImage? {
+    let handler = VNImageRequestHandler(ciImage: image, options: [:])
+    let request = VNGenerateForegroundInstanceMaskRequest()
+    try handler.perform([request])
+
+    guard let observation = request.results?.first, !observation.allInstances.isEmpty else {
+      return nil
+    }
+
+    // 여러 물체가 잡히면 화면 가운데에 있는 것만 고른다. 가운데가 배경이면 전부 쓴다.
+    var instances = observation.allInstances
+    if let center = centerInstance(of: observation.instanceMask), instances.contains(center) {
+      instances = IndexSet(integer: center)
+    }
+
+    let buffer = try observation.generateMaskedImage(
+      ofInstances: instances,
+      from: handler,
+      croppedToInstancesExtent: true
+    )
+
+    var output = CIImage(cvPixelBuffer: buffer)
+    let longest = max(output.extent.width, output.extent.height)
+    if longest > maxSide {
+      let scale = maxSide / longest
+      output = output.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
+    }
+    return output
   }
 
   private static func write(_ image: CIImage, name: String) throws -> URL {

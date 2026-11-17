@@ -52,6 +52,7 @@ export function Review({ capture, cut, onSaved }: { capture: Capture; cut: Cut; 
             병만 떼어 내지 못해 사진 그대로 담아요. 병을 화면 가운데에 두고 다시 찍으면 잘 돼요.
           </Text>
         )}
+        {__DEV__ && cut.liftError && <Text style={styles.debug}>개발용 — 원인: {cut.liftError}</Text>}
 
         <View style={styles.nameRow}>
           <TextInput
@@ -102,6 +103,7 @@ const styles = StyleSheet.create({
   cutout: { width: '70%', height: 300 },
   cutoutPlain: { width: 200, borderRadius: 8 },
   notice: { fontFamily: font.serif, fontSize: 13, lineHeight: 20, color: color.mist, marginBottom: space.m },
+  debug: { fontSize: 11, color: '#F0A8A8', marginBottom: space.m },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
