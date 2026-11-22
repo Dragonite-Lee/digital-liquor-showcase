@@ -7,6 +7,7 @@ import { newId, useCellar } from '@/store';
 
 import type { CategoryId } from './categories';
 import { classifyBottle, classifyEnabled, lastClassifyError } from './classify';
+import { type Art, illustrateBottle, illustrateEnabled } from './illustrate';
 import { keepImage } from './images';
 
 export type Cut = {
@@ -21,6 +22,8 @@ export type Cut = {
 export type Stage = 'camera' | 'lifting' | 'review';
 /** off: 분류 꺼짐 · reading: 라벨 읽는 중 · found: 이름을 읽음 · missed: 못 읽음 */
 export type GuessState = 'off' | 'reading' | 'found' | 'missed';
+/** off: 그림 기능 꺼짐 · painting: 그리는 중 · done: 완성 · failed: 실패(사진으로 담는다) */
+export type PaintState = 'off' | 'painting' | 'done' | 'failed';
 
 const EMPTY = { name: '', category: 'etc' as CategoryId, memo: '' };
 
@@ -36,6 +39,9 @@ export function useCapture() {
   const [draft, setDraft] = useState(EMPTY);
   const [guess, setGuess] = useState<GuessState>('off');
   const [guessError, setGuessError] = useState<string | null>(null);
+  const [paint, setPaint] = useState<PaintState>('off');
+  const [art, setArt] = useState<Art | null>(null);
+  const [paintError, setPaintError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState(false);
   // 확인 화면과 담은 뒤가 같은 신문 조각으로 보이도록 id를 미리 정한다
   const [id, setId] = useState(newId);
@@ -53,6 +59,9 @@ export function useCapture() {
     setCut(null);
     setDraft(EMPTY);
     setGuess('off');
+    setPaint('off');
+    setArt(null);
+    setPaintError(null);
     setSaveError(false);
   };
 
@@ -67,6 +76,24 @@ export function useCapture() {
     setGuessError(null);
 
     const guessing = classifyBottle(uri, width, height);
+
+    // 수채화는 오래 걸리니 따로 돌린다. 끝나면 확인 화면의 병이 그림으로 바뀐다.
+    setArt(null);
+    setPaintError(null);
+    setPaint(illustrateEnabled ? 'painting' : 'off');
+    if (illustrateEnabled) {
+      illustrateBottle(uri, width, height)
+        .then((a) => {
+          if (mine !== run.current) return;
+          setArt(a);
+          setPaint('done');
+        })
+        .catch((e) => {
+          if (mine !== run.current) return;
+          setPaintError(e instanceof Error ? e.message : String(e));
+          setPaint('failed');
+        });
+    }
 
     let next: Cut = { uri, width, height, lifted: false };
     if (isAvailable()) {
@@ -123,6 +150,8 @@ export function useCapture() {
         memo: draft.memo.trim(),
         image: keepImage(cut.uri, id),
         sticker: cut.stickerUri ? keepImage(cut.stickerUri, `${id}-sticker`) : undefined,
+        art: art ? keepImage(art.uri, `${id}-art`) : undefined,
+        artSticker: art?.stickerUri ? keepImage(art.stickerUri, `${id}-art-sticker`) : undefined,
         width: cut.width,
         height: cut.height,
         createdAt: Date.now(),
@@ -134,7 +163,7 @@ export function useCapture() {
     }
   };
 
-  return { id, stage, photo, cut, draft, guess, guessError, saveError, process, reset, save, setName, setCategory, setMemo };
+  return { id, stage, photo, cut, draft, guess, guessError, paint, art, paintError, saveError, process, reset, save, setName, setCategory, setMemo };
 }
 
 export type Capture = ReturnType<typeof useCapture>;

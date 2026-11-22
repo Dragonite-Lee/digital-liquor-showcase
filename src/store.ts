@@ -14,6 +14,10 @@ export type Bottle = {
   image: string;
   /** 테두리를 두른 스티커 (홈). 누끼를 못 딴 병에는 없다. */
   sticker?: string;
+  /** 수채화 일러스트 (투명 배경). 있으면 사진 누끼 대신 이걸 보여 준다 */
+  art?: string;
+  /** 수채화 일러스트의 테두리 스티커 (홈) */
+  artSticker?: string;
   width: number;
   height: number;
   createdAt: number;
@@ -33,7 +37,7 @@ type State = {
   moveTo: (id: string, slot: number) => void;
   setFilter: (filter: CategoryId | 'all') => void;
   add: (bottle: Bottle) => void;
-  update: (id: string, patch: Partial<Pick<Bottle, 'name' | 'category' | 'memo'>>) => void;
+  update: (id: string, patch: Partial<Pick<Bottle, 'name' | 'category' | 'memo' | 'art' | 'artSticker'>>) => void;
   remove: (id: string) => void;
 };
 
@@ -65,6 +69,8 @@ export const useCellar = create<State>()(
         if (target) {
           dropImage(target.image);
           if (target.sticker) dropImage(target.sticker);
+          if (target.art) dropImage(target.art);
+          if (target.artSticker) dropImage(target.artSticker);
         }
         const bottles = get().bottles.filter((b) => b.id !== id);
         const filter = get().filter;

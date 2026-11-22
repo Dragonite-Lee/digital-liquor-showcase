@@ -52,6 +52,17 @@ cp .env.example .env                                     # URL과 publishable �
 
 `.env`를 바꾼 뒤에는 개발 서버를 다시 켠다. URL이 비어 있거나 호출이 실패하면 종류와 이름을 직접 적는다.
 
+## 수채화 그리기 켜기
+
+찍은 병을 Cloudflare Workers AI(FLUX.2 [klein] 9B)로 수채화 일러스트로 다시 그린다. 같은 Supabase 프로젝트에 함수를 하나 더 올린다.
+
+```bash
+npx supabase secrets set CF_ACCOUNT_ID=... CF_API_TOKEN=...   # 토큰 권한: Account > Workers AI > Read
+npx supabase functions deploy illustrate-bottle
+```
+
+주소는 `EXPO_PUBLIC_CLASSIFY_URL`에서 함수 이름만 바꿔 쓴다. 실패하면 사진 누끼로 담고, 병 화면에서 다시 그릴 수 있다.
+
 ## 구조
 
 ```

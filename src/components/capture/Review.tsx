@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -13,7 +14,6 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CategoryPicker } from '@/components/CategoryPicker';
-import { Clipping } from '@/components/Clipping';
 import { Halo } from '@/components/Halo';
 import { NotePaper } from '@/components/NotePaper';
 import type { Capture, Cut, GuessState } from '@/lib/useCapture';
@@ -31,6 +31,9 @@ export function Review({ capture, cut, onSaved }: { capture: Capture; cut: Cut; 
   const insets = useSafeAreaInsets();
   const { draft, guess } = capture;
   const reading = guess === 'reading';
+  // 그림이 오면 그림, 아니면 누끼(또는 사진)
+  const shown = capture.art ?? cut;
+  const plain = !capture.art && !cut.lifted;
 
   return (
     <KeyboardAvoidingView style={styles.review} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -40,13 +43,19 @@ export function Review({ capture, cut, onSaved }: { capture: Capture; cut: Cut; 
       >
         <View style={styles.stageBox}>
           <Halo style={styles.halo} />
-          <Clipping
-            image={cut.uri}
-            ratio={cut.width && cut.height ? cut.width / cut.height : 0.42}
-            seedId={capture.id}
-            height={330}
-            photo={!cut.lifted}
+          <Image
+            source={{ uri: shown.uri }}
+            style={[styles.cutout, plain && styles.cutoutPlain]}
+            contentFit={plain ? 'cover' : 'contain'}
+            transition={400}
+            accessibilityLabel={capture.art ? '수채화로 그린 병' : '방금 찍은 병'}
           />
+          {capture.paint === 'painting' && (
+            <View style={styles.painting}>
+              <ActivityIndicator color={color.labelInk} size="small" />
+              <Text style={styles.paintingText}>수채화로 그리는 중…</Text>
+            </View>
+          )}
         </View>
         {!cut.lifted && (
           <Text style={styles.notice}>
@@ -54,6 +63,10 @@ export function Review({ capture, cut, onSaved }: { capture: Capture; cut: Cut; 
           </Text>
         )}
         {__DEV__ && cut.liftError && <Text style={styles.debug}>개발용 — 원인: {cut.liftError}</Text>}
+        {capture.paint === 'failed' && (
+          <Text style={styles.notice}>수채화를 그리지 못해 사진으로 담아요. 담은 뒤 병 화면에서 다시 그릴 수 있어요.</Text>
+        )}
+        {__DEV__ && capture.paintError && <Text style={styles.debug}>개발용 — 그림: {capture.paintError}</Text>}
 
         <View style={styles.nameRow}>
           <TextInput
@@ -102,6 +115,20 @@ const styles = StyleSheet.create({
   review: { flex: 1, backgroundColor: color.glass },
   stageBox: { height: 350, alignItems: 'center', justifyContent: 'flex-end', marginBottom: space.l },
   halo: { bottom: 10 },
+  cutout: { width: '70%', height: 330 },
+  cutoutPlain: { width: 200, borderRadius: 8 },
+  painting: {
+    position: 'absolute',
+    bottom: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 14,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: color.glow,
+  },
+  paintingText: { fontFamily: font.serif, fontSize: 13, color: color.labelInk },
   notice: { fontFamily: font.serif, fontSize: 13, lineHeight: 20, color: color.mist, marginBottom: space.m },
   debug: { fontSize: 11, color: '#F0A8A8', marginBottom: space.m },
   nameRow: {

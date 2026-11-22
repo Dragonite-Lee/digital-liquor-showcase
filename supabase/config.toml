@@ -4,3 +4,6 @@ project_id = "ieafmosojnvcveqawnmz"
 # 플랫폼의 verify_jwt 검사를 통과하지 못하므로 끄고, 함수 안에서 키를 확인한다.
 [functions.classify-bottle]
 verify_jwt = false
+
+[functions.illustrate-bottle]
+verify_jwt = false

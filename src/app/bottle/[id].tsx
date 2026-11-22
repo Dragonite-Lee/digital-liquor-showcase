@@ -1,13 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useState } from 'react';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CategoryPicker } from '@/components/CategoryPicker';
-import { Clipping } from '@/components/Clipping';
-import { bottleRatio } from '@/components/FloatingField';
+import { BottleImage } from '@/components/BottleImage';
 import { Halo } from '@/components/Halo';
 import { NotePaper } from '@/components/NotePaper';
+import { illustrateBottle, illustrateEnabled } from '@/lib/illustrate';
+import { dropImage, imageUri, keepImage } from '@/lib/images';
 import { useCellar } from '@/store';
 import { color, font, space } from '@/theme';
 
@@ -22,6 +24,8 @@ export default function BottleDetail() {
   const bottle = useCellar((s) => s.bottles.find((b) => b.id === id));
   const update = useCellar((s) => s.update);
   const remove = useCellar((s) => s.remove);
+  const [painting, setPainting] = useState(false);
+  const [paintError, setPaintError] = useState<string | null>(null);
 
   if (!bottle) {
     return (
@@ -30,6 +34,28 @@ export default function BottleDetail() {
       </View>
     );
   }
+
+  /** 이미 담은 병을 수채화로 (다시) 그린다 */
+  const paint = async () => {
+    if (painting) return;
+    setPainting(true);
+    setPaintError(null);
+    try {
+      const art = await illustrateBottle(imageUri(bottle.image), bottle.width, bottle.height, !!bottle.sticker);
+      const stamp = Date.now().toString(36);
+      const next = {
+        art: keepImage(art.uri, `${bottle.id}-art-${stamp}`),
+        artSticker: art.stickerUri ? keepImage(art.stickerUri, `${bottle.id}-art-sticker-${stamp}`) : undefined,
+      };
+      if (bottle.art) dropImage(bottle.art);
+      if (bottle.artSticker) dropImage(bottle.artSticker);
+      update(bottle.id, next);
+    } catch (e) {
+      setPaintError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setPainting(false);
+    }
+  };
 
   const confirmRemove = () => {
     const go = () => {
@@ -60,14 +86,27 @@ export default function BottleDetail() {
 
         <View style={styles.stage}>
           <Halo style={styles.halo} />
-          <Clipping
-            image={bottle.image}
-            ratio={bottleRatio(bottle)}
-            seedId={bottle.id}
-            height={330}
-            photo={!bottle.sticker}
-          />
+          <BottleImage bottle={bottle} style={styles.image} />
         </View>
+
+        {illustrateEnabled && (
+          <Pressable
+            onPress={paint}
+            disabled={painting}
+            accessibilityRole="button"
+            style={({ pressed }) => [styles.paint, pressed && { opacity: 0.6 }]}
+          >
+            {painting ? (
+              <ActivityIndicator color={color.glow} size="small" />
+            ) : (
+              <Ionicons name="color-palette-outline" size={16} color={color.glow} />
+            )}
+            <Text style={styles.paintLabel}>
+              {painting ? '수채화로 그리는 중…' : bottle.art ? '수채화 다시 그리기' : '수채화로 그리기'}
+            </Text>
+          </Pressable>
+        )}
+        {paintError && <Text style={styles.paintError}>그리지 못했어요. 잠시 뒤 다시 눌러 주세요.{__DEV__ ? `\n${paintError}` : ''}</Text>}
 
         <TextInput
           value={bottle.name}
@@ -94,6 +133,21 @@ const styles = StyleSheet.create({
   bar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   stage: { height: 340, alignItems: 'center', justifyContent: 'flex-end', marginTop: space.s, marginBottom: space.l },
   halo: { bottom: 20 },
+  image: { width: '70%', height: 320 },
+  paint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    gap: 6,
+    height: 34,
+    paddingHorizontal: 14,
+    borderRadius: 17,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(244,228,184,0.4)',
+    marginBottom: space.l,
+  },
+  paintLabel: { fontFamily: font.serif, fontSize: 13, color: color.glow },
+  paintError: { fontFamily: font.serif, fontSize: 12, color: '#F0A8A8', textAlign: 'center', marginTop: -space.m, marginBottom: space.l },
   name: { fontFamily: font.serifBold, fontSize: 26, lineHeight: 34, color: color.label, padding: 0 },
   date: { fontFamily: font.serif, fontSize: 13, color: color.mist, marginTop: 6, marginBottom: space.m },
 });
