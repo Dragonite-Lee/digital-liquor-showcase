@@ -61,6 +61,17 @@ npx supabase secrets set CF_ACCOUNT_ID=... CF_API_TOKEN=...   # 토큰 권한: A
 npx supabase functions deploy illustrate-bottle
 ```
 
+### 그림 프롬프트 바꾸기
+
+코드를 고치지 않고 Supabase 시크릿으로 테마별 프롬프트를 덮어쓸 수 있다. 공통 지시(병 모양 유지·흰 배경 등)는 `PROMPT_KEEP`.
+
+```bash
+npx supabase secrets set PROMPT_WATERCOLOR="Redraw the bottle as ..."
+npx supabase secrets unset PROMPT_WATERCOLOR   # 기본값으로 되돌리기
+```
+
+키 이름: `PROMPT_WATERCOLOR`, `PROMPT_MONET`, `PROMPT_VANGOGH`, `PROMPT_MODERN`, `PROMPT_KEEP`. 기본값은 `supabase/functions/illustrate-bottle/index.ts`에 있다.
+
 주소는 `EXPO_PUBLIC_CLASSIFY_URL`에서 함수 이름만 바꿔 쓴다. 실패하면 사진 누끼로 담고, 병 화면에서 다시 그릴 수 있다.
 
 ## 구조
