@@ -70,7 +70,7 @@ npx supabase secrets set PROMPT_WATERCOLOR="Redraw the bottle as ..."
 npx supabase secrets unset PROMPT_WATERCOLOR   # 기본값으로 되돌리기
 ```
 
-키 이름: `PROMPT_WATERCOLOR`, `PROMPT_MONET`, `PROMPT_VANGOGH`, `PROMPT_MODERN`, `PROMPT_KEEP`. 기본값은 `supabase/functions/illustrate-bottle/index.ts`에 있다.
+키 이름: `PROMPT_WATERCOLOR`, `PROMPT_MONET`, `PROMPT_VANGOGH`, `PROMPT_MODERN`, `PROMPT_KEEP`. 기본값은 `supabase/functions/illustrate-bottle/prompts.ts`에 있다. 이미지 모델은 진짜 투명 PNG를 만들지 못하므로 프롬프트는 흰 배경으로 받고, 앱이 기기에서 병만 떼어 낸다.
 
 주소는 `EXPO_PUBLIC_CLASSIFY_URL`에서 함수 이름만 바꿔 쓴다. 실패하면 사진 누끼로 담고, 병 화면에서 다시 그릴 수 있다.
 

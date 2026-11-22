@@ -1,31 +1,17 @@
 // 병 사진 → 테마별 그림(수채화·모네·고흐·현대회화). Supabase Edge Function (Deno) → Cloudflare Workers AI (FLUX.2 [klein] 9B).
 // 배포: supabase functions deploy illustrate-bottle   (verify_jwt는 supabase/config.toml에서 끔)
 // 시크릿: supabase secrets set CF_ACCOUNT_ID=... CF_API_TOKEN=...   (토큰 권한: Workers AI)
+import { DEFAULT_STYLES } from './prompts.ts';
+
 const MODEL = Deno.env.get('ILLUSTRATE_MODEL') ?? '@cf/black-forest-labs/flux-2-klein-9b';
 // FLUX의 안전 필터에 막히면 쓰는 모델 (Cloudflare 카탈로그의 Google 모델, Cloudflare 크레딧으로 결제)
 const FALLBACK = Deno.env.get('ILLUSTRATE_FALLBACK') ?? 'google/nano-banana';
 
 // 모든 테마 공통: 병 모양·라벨은 그대로, 배경은 흰색(앱에서 다시 병만 떼어 낸다)
+// 모든 테마 뒤에 붙이는 공통 지시. 테마 프롬프트에 이미 들어 있어 짧게 둔다.
 const KEEP =
   Deno.env.get('PROMPT_KEEP') ??
-  [
-    'Keep the exact bottle silhouette, cap, glass color, label layout, label colors and the large brand name lettering.',
-    'Keep the liquid level exactly as in the photo: leave the empty part of the bottle as clear glass, do not fill it up.',
-    'Render small label text as soft, loose painted marks instead of inventing fake letters.',
-    'One single bottle, upright, centered, the whole bottle visible from cap to base with some margin.',
-    'Plain pure white background. No table, no shadow, no hands, no other objects, no text outside the label.',
-  ].join(' ');
-
-const DEFAULT_STYLES: Record<string, string> = {
-  watercolor:
-    'Redraw the bottle from the input image as a hand-painted watercolor illustration. Fine ink outlines, soft translucent watercolor washes, light pencil texture, gentle color bleeding at the edges, white highlights left as bare paper.',
-  monet:
-    'Repaint the bottle from the input image as an impressionist oil painting in the manner of Claude Monet. Short broken brushstrokes, soft dappled light, pastel blues, lilacs and warm golds shimmering in the glass, visible canvas texture.',
-  vangogh:
-    'Repaint the bottle from the input image as a post-impressionist oil painting in the manner of Vincent van Gogh. Thick impasto, bold directional swirling brushstrokes that follow the form of the glass, vivid cobalt blues and chrome yellows, expressive outlines.',
-  modern:
-    'Redraw the bottle from the input image as a contemporary naive painting with oil pastel and gouache. Chunky hand-drawn rust-brown outline, flat cheerful colors, visible crayon strokes and paper grain, slightly wobbly playful lines, simplified friendly label art.',
-};
+  'Reminder: exactly one bottle, upright and fully visible, on a flat plain pure white background with nothing else.';
 
 // 프롬프트는 코드 수정 없이 Supabase 시크릿으로 바꿀 수 있다 (PROMPT_WATERCOLOR, PROMPT_MONET, PROMPT_VANGOGH, PROMPT_MODERN, PROMPT_KEEP)
 const STYLES: Record<string, string> = Object.fromEntries(
