@@ -103,6 +103,7 @@ Deno.serve(async (req) => {
         image_input: [`data:${mediaType};base64,${image}`],
         aspect_ratio: '2:3',
         output_format: 'png',
+        image_size: '1K',
       },
     }),
   });
@@ -120,16 +121,18 @@ Deno.serve(async (req) => {
   }
   try {
     const data = JSON.parse(secondText);
-    const out: unknown = data?.result?.image ?? data?.image;
+    // 응답이 { result: { state, result: { image } } } 처럼 한 겹 더 감싸여 온다
+    const out: unknown = data?.result?.result?.image ?? data?.result?.image ?? data?.image;
     if (typeof out !== 'string') throw new Error('no image');
     if (!out.startsWith('http')) return json({ image: out.replace(/^data:image\/\w+;base64,/, ''), model: FALLBACK });
     // 결과가 주소로 오면 받아서 base64로 넘긴다
     const file = await fetch(out);
+    if (!file.ok) throw new Error(`download ${file.status}`);
     const buf = new Uint8Array(await file.arrayBuffer());
     let bin = '';
     for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
     return json({ image: btoa(bin), model: FALLBACK });
-  } catch {
-    return json({ error: 'unexpected upstream response', detail: secondText.slice(0, 300) }, 502);
+  } catch (e) {
+    return json({ error: 'unexpected upstream response', reason: String(e), detail: secondText.slice(0, 300) }, 502);
   }
 });
