@@ -1,15 +1,26 @@
-// 병 사진 → 수채화 일러스트. Supabase Edge Function (Deno) → Cloudflare Workers AI (FLUX.2 [klein] 9B).
+// 병 사진 → 테마별 그림(수채화·모네·고흐·현대회화). Supabase Edge Function (Deno) → Cloudflare Workers AI (FLUX.2 [klein] 9B).
 // 배포: supabase functions deploy illustrate-bottle   (verify_jwt는 supabase/config.toml에서 끔)
 // 시크릿: supabase secrets set CF_ACCOUNT_ID=... CF_API_TOKEN=...   (토큰 권한: Workers AI)
 const MODEL = Deno.env.get('ILLUSTRATE_MODEL') ?? '@cf/black-forest-labs/flux-2-klein-9b';
 
-const PROMPT = [
-  'Redraw the bottle from the input image as a hand-painted watercolor illustration.',
+// 모든 테마 공통: 병 모양·라벨은 그대로, 배경은 흰색(앱에서 다시 병만 떼어 낸다)
+const KEEP = [
   'Keep the exact bottle silhouette, cap, glass color, label layout, label colors and the brand name lettering.',
-  'Fine ink outlines, soft translucent watercolor washes, light pencil texture, gentle color bleeding at the edges, white highlights left as bare paper.',
   'One single bottle, upright, centered, the whole bottle visible from cap to base with some margin.',
   'Plain pure white background. No table, no shadow, no hands, no other objects, no text outside the label.',
 ].join(' ');
+
+const STYLES: Record<string, string> = {
+  watercolor:
+    'Redraw the bottle from the input image as a hand-painted watercolor illustration. Fine ink outlines, soft translucent watercolor washes, light pencil texture, gentle color bleeding at the edges, white highlights left as bare paper.',
+  monet:
+    'Repaint the bottle from the input image as an impressionist oil painting in the manner of Claude Monet. Short broken brushstrokes, soft dappled light, pastel blues, lilacs and warm golds shimmering in the glass, visible canvas texture.',
+  vangogh:
+    'Repaint the bottle from the input image as a post-impressionist oil painting in the manner of Vincent van Gogh. Thick impasto, bold directional swirling brushstrokes that follow the form of the glass, vivid cobalt blues and chrome yellows, expressive outlines.',
+  modern:
+    'Redraw the bottle from the input image as a contemporary naive painting with oil pastel and gouache. Chunky hand-drawn rust-brown outline, flat cheerful colors, visible crayon strokes and paper grain, slightly wobbly playful lines, simplified friendly label art.',
+};
+
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -41,10 +52,12 @@ Deno.serve(async (req) => {
 
   let image: string;
   let mediaType: string;
+  let style: string;
   try {
     const body = await req.json();
     image = body.image;
     mediaType = body.mediaType ?? 'image/jpeg';
+    style = STYLES[body.theme] ?? STYLES.watercolor;
     if (typeof image !== 'string' || image.length < 100) throw new Error('missing image');
     if (image.length > 3_000_000) return json({ error: 'image too large' }, 413);
   } catch {
@@ -52,7 +65,7 @@ Deno.serve(async (req) => {
   }
 
   const form = new FormData();
-  form.append('prompt', PROMPT);
+  form.append('prompt', `${style} ${KEEP}`);
   form.append('input_image_0', new Blob([decode(image)], { type: mediaType }), mediaType === 'image/png' ? 'bottle.png' : 'bottle.jpg');
   form.append('width', '640');
   form.append('height', '1024');

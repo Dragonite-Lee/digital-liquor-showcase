@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -16,6 +17,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CategoryPicker } from '@/components/CategoryPicker';
 import { Halo } from '@/components/Halo';
 import { NotePaper } from '@/components/NotePaper';
+import { ThemePicker } from '@/components/themes/ThemePicker';
+import { ThemeSheet } from '@/components/themes/ThemeSheet';
+import { illustrateEnabled } from '@/lib/illustrate';
+import { isUnlocked } from '@/lib/purchases';
+import { themeOf, type ThemeId } from '@/lib/themes';
+import { useCellar } from '@/store';
 import type { Capture, Cut, GuessState } from '@/lib/useCapture';
 import { color, font, space } from '@/theme';
 
@@ -31,6 +38,13 @@ export function Review({ capture, cut, onSaved }: { capture: Capture; cut: Cut; 
   const insets = useSafeAreaInsets();
   const { draft, guess } = capture;
   const reading = guess === 'reading';
+  const owned = useCellar((s) => s.ownedThemes);
+  const [locked, setLocked] = useState<ThemeId | null>(null);
+
+  const pickTheme = (id: ThemeId) => {
+    if (isUnlocked(id, owned)) capture.paintAs(id);
+    else setLocked(id);
+  };
   // 그림이 오면 그림, 아니면 누끼(또는 사진)
   const shown = capture.art ?? cut;
   const plain = !capture.art && !cut.lifted;
@@ -53,7 +67,7 @@ export function Review({ capture, cut, onSaved }: { capture: Capture; cut: Cut; 
           {capture.paint === 'painting' && (
             <View style={styles.painting}>
               <ActivityIndicator color={color.labelInk} size="small" />
-              <Text style={styles.paintingText}>수채화로 그리는 중…</Text>
+              <Text style={styles.paintingText}>{themeOf(capture.theme).label}(으)로 그리는 중…</Text>
             </View>
           )}
         </View>
@@ -63,8 +77,13 @@ export function Review({ capture, cut, onSaved }: { capture: Capture; cut: Cut; 
           </Text>
         )}
         {__DEV__ && cut.liftError && <Text style={styles.debug}>개발용 — 원인: {cut.liftError}</Text>}
+        {illustrateEnabled && (
+          <View style={styles.themes}>
+            <ThemePicker value={capture.theme} busy={capture.paint === 'painting' ? capture.theme : null} onSelect={pickTheme} />
+          </View>
+        )}
         {capture.paint === 'failed' && (
-          <Text style={styles.notice}>수채화를 그리지 못해 사진으로 담아요. 담은 뒤 병 화면에서 다시 그릴 수 있어요.</Text>
+          <Text style={styles.notice}>그림을 그리지 못해 사진으로 담아요. 담은 뒤 병 화면에서 다시 그릴 수 있어요.</Text>
         )}
         {__DEV__ && capture.paintError && <Text style={styles.debug}>개발용 — 그림: {capture.paintError}</Text>}
 
@@ -99,7 +118,10 @@ export function Review({ capture, cut, onSaved }: { capture: Capture; cut: Cut; 
             <Text style={styles.ghostLabel}>다시 찍기</Text>
           </Pressable>
           <Pressable
-            onPress={() => capture.save() && onSaved()}
+            onPress={async () => {
+              if (await capture.save()) onSaved();
+            }}
+            disabled={capture.saving}
             accessibilityRole="button"
             style={({ pressed }) => [styles.primary, pressed && styles.pressed]}
           >
@@ -107,6 +129,14 @@ export function Review({ capture, cut, onSaved }: { capture: Capture; cut: Cut; 
           </Pressable>
         </View>
       </ScrollView>
+      <ThemeSheet
+        theme={locked}
+        onClose={() => setLocked(null)}
+        onReady={(id) => {
+          setLocked(null);
+          capture.paintAs(id);
+        }}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -117,6 +147,7 @@ const styles = StyleSheet.create({
   halo: { bottom: 10 },
   cutout: { width: '70%', height: 330 },
   cutoutPlain: { width: 200, borderRadius: 8 },
+  themes: { marginBottom: space.l },
   painting: {
     position: 'absolute',
     bottom: 14,

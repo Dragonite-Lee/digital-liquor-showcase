@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import type { CategoryId } from './lib/categories';
+import type { ThemeId } from './lib/themes';
 import { dropImage } from './lib/images';
 
 export type Bottle = {
@@ -14,10 +15,14 @@ export type Bottle = {
   image: string;
   /** 테두리를 두른 스티커 (홈). 누끼를 못 딴 병에는 없다. */
   sticker?: string;
-  /** 수채화 일러스트 (투명 배경). 있으면 사진 누끼 대신 이걸 보여 준다 */
+  /** 테마 그림 (투명 배경). 있으면 사진 누끼 대신 이걸 보여 준다 */
   art?: string;
-  /** 수채화 일러스트의 테두리 스티커 (홈) */
+  /** 테마 그림의 테두리 스티커 (홈) */
   artSticker?: string;
+  /** 그림 테마 */
+  theme?: ThemeId;
+  /** 다른 테마로 다시 그릴 때 쓰는 원본 사진 (긴 변 1024px) */
+  photo?: string;
   width: number;
   height: number;
   createdAt: number;
@@ -37,8 +42,18 @@ type State = {
   moveTo: (id: string, slot: number) => void;
   setFilter: (filter: CategoryId | 'all') => void;
   add: (bottle: Bottle) => void;
-  update: (id: string, patch: Partial<Pick<Bottle, 'name' | 'category' | 'memo' | 'art' | 'artSticker'>>) => void;
+  update: (id: string, patch: Partial<Pick<Bottle, 'name' | 'category' | 'memo' | 'art' | 'artSticker' | 'theme'>>) => void;
   remove: (id: string) => void;
+
+  /** 산 테마 (수채화는 앱 구매에 포함이라 따로 두지 않는다) */
+  ownedThemes: ThemeId[];
+  /** 테마마다 한 번씩 주는 무료 체험을 쓴 테마 */
+  trialsUsed: ThemeId[];
+  /** 유료 테마 권유를 이미 보여 줬는지 */
+  nudged: boolean;
+  unlockThemes: (ids: ThemeId[]) => void;
+  spendTrial: (id: ThemeId) => void;
+  markNudged: () => void;
 };
 
 export const useCellar = create<State>()(
@@ -46,6 +61,12 @@ export const useCellar = create<State>()(
     (set, get) => ({
       bottles: [],
       filter: 'all',
+      ownedThemes: [],
+      trialsUsed: [],
+      nudged: false,
+      unlockThemes: (ids) => set({ ownedThemes: [...new Set([...get().ownedThemes, ...ids])] }),
+      spendTrial: (id) => set({ trialsUsed: [...new Set([...get().trialsUsed, id])] }),
+      markNudged: () => set({ nudged: true }),
       justAdded: null,
       clearJustAdded: () => set({ justAdded: null }),
       addMany: (bottles) => set({ bottles: withSlots([...get().bottles, ...bottles]) }),
@@ -71,6 +92,7 @@ export const useCellar = create<State>()(
           if (target.sticker) dropImage(target.sticker);
           if (target.art) dropImage(target.art);
           if (target.artSticker) dropImage(target.artSticker);
+          if (target.photo) dropImage(target.photo);
         }
         const bottles = get().bottles.filter((b) => b.id !== id);
         const filter = get().filter;
@@ -81,12 +103,21 @@ export const useCellar = create<State>()(
     {
       name: 'cellar-v1',
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: (state) => ({ bottles: state.bottles }),
-      // 자리 번호가 없던 예전 데이터에도 자리를 준다
-      merge: (saved, current) => ({
-        ...current,
-        bottles: withSlots((saved as { bottles?: Bottle[] } | undefined)?.bottles ?? []),
+      partialize: (state) => ({
+        bottles: state.bottles,
+        ownedThemes: state.ownedThemes,
+        trialsUsed: state.trialsUsed,
+        nudged: state.nudged,
       }),
+      merge: (saved, current) => {
+        const kept = (saved ?? {}) as Partial<State>;
+        return {
+          ...current,
+          ...kept,
+          // 자리 번호가 없던 예전 데이터에도 자리를 준다
+          bottles: withSlots(kept.bottles ?? []),
+        };
+      },
     },
   ),
 );

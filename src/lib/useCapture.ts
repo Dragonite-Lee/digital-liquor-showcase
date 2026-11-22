@@ -1,4 +1,5 @@
 import * as Haptics from 'expo-haptics';
+import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { isAvailable, liftSubject } from 'subject-lift';
@@ -9,6 +10,7 @@ import type { CategoryId } from './categories';
 import { classifyBottle, classifyEnabled, lastClassifyError } from './classify';
 import { type Art, illustrateBottle, illustrateEnabled } from './illustrate';
 import { keepImage } from './images';
+import type { ThemeId } from './themes';
 
 export type Cut = {
   uri: string;
@@ -26,30 +28,46 @@ export type GuessState = 'off' | 'reading' | 'found' | 'missed';
 export type PaintState = 'off' | 'painting' | 'done' | 'failed';
 
 const EMPTY = { name: '', category: 'etc' as CategoryId, memo: '' };
+/** 다른 테마로 다시 그릴 때 쓰려고 남겨 두는 원본 사진 크기 */
+const KEEP_PHOTO_SIDE = 1024;
 
 /**
- * 촬영 한 번의 흐름: 사진 → 병 떼어 내기 + 라벨 읽기(동시에) → 이름·종류·메모 확인 → 저장.
+ * 촬영 한 번의 흐름: 사진 → 병 떼어 내기 + 라벨 읽기 + 수채화 그리기(동시에) → 확인 → 저장.
+ * 확인 화면에서 테마를 바꾸면 그 테마로 다시 그린다. 그린 그림은 테마별로 기억해 되돌아가도 다시 안 그린다.
  */
 export function useCapture() {
   const add = useCellar((s) => s.add);
 
   const [stage, setStage] = useState<Stage>('camera');
-  const [photo, setPhoto] = useState<string | null>(null);
+  const [photo, setPhoto] = useState<{ uri: string; width: number; height: number } | null>(null);
   const [cut, setCut] = useState<Cut | null>(null);
   const [draft, setDraft] = useState(EMPTY);
   const [guess, setGuess] = useState<GuessState>('off');
   const [guessError, setGuessError] = useState<string | null>(null);
-  const [paint, setPaint] = useState<PaintState>('off');
-  const [art, setArt] = useState<Art | null>(null);
+  const [theme, setTheme] = useState<ThemeId>('watercolor');
+  const [arts, setArts] = useState<Partial<Record<ThemeId, Art>>>({});
+  const [painting, setPainting] = useState<ThemeId | null>(null);
   const [paintError, setPaintError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState(false);
-  // 확인 화면과 담은 뒤가 같은 신문 조각으로 보이도록 id를 미리 정한다
+  const [saving, setSaving] = useState(false);
+  // 확인 화면과 담은 뒤가 같은 모습이 되도록 id를 미리 정한다
   const [id, setId] = useState(newId);
 
   // 사용자가 직접 고친 값은 AI 추정이 뒤늦게 와도 덮어쓰지 않는다
   const touched = useRef({ name: false, category: false });
-  // 다시 찍으면 이전 사진의 추정 결과가 늦게 도착해도 버린다
+  // 다시 찍으면 이전 사진의 결과가 늦게 도착해도 버린다
   const run = useRef(0);
+
+  const art = arts[theme] ?? null;
+  const paint: PaintState = !illustrateEnabled
+    ? 'off'
+    : painting === theme
+      ? 'painting'
+      : art
+        ? 'done'
+        : paintError
+          ? 'failed'
+          : 'off';
 
   const reset = () => {
     run.current += 1;
@@ -59,41 +77,47 @@ export function useCapture() {
     setCut(null);
     setDraft(EMPTY);
     setGuess('off');
-    setPaint('off');
-    setArt(null);
+    setTheme('watercolor');
+    setArts({});
+    setPainting(null);
     setPaintError(null);
     setSaveError(false);
   };
 
+  const paintAs = (next: ThemeId, source = photo, mine = run.current) => {
+    setTheme(next);
+    setPaintError(null);
+    if (!illustrateEnabled || !source || arts[next]) return;
+    setPainting(next);
+    illustrateBottle(source.uri, source.width, source.height, next)
+      .then((a) => {
+        if (mine !== run.current) return;
+        setArts((prev) => ({ ...prev, [next]: a }));
+      })
+      .catch((e) => {
+        if (mine !== run.current) return;
+        setPaintError(e instanceof Error ? e.message : String(e));
+      })
+      .finally(() => {
+        if (mine === run.current) setPainting((p) => (p === next ? null : p));
+      });
+  };
+
   const process = async (uri: string, width: number, height: number) => {
     const mine = ++run.current;
+    const source = { uri, width, height };
     touched.current = { name: false, category: false };
-    setPhoto(uri);
+    setPhoto(source);
     setDraft(EMPTY);
+    setArts({});
     setId(newId());
     setStage('lifting');
     setGuess(classifyEnabled ? 'reading' : 'off');
     setGuessError(null);
 
     const guessing = classifyBottle(uri, width, height);
-
-    // 수채화는 오래 걸리니 따로 돌린다. 끝나면 확인 화면의 병이 그림으로 바뀐다.
-    setArt(null);
-    setPaintError(null);
-    setPaint(illustrateEnabled ? 'painting' : 'off');
-    if (illustrateEnabled) {
-      illustrateBottle(uri, width, height)
-        .then((a) => {
-          if (mine !== run.current) return;
-          setArt(a);
-          setPaint('done');
-        })
-        .catch((e) => {
-          if (mine !== run.current) return;
-          setPaintError(e instanceof Error ? e.message : String(e));
-          setPaint('failed');
-        });
-    }
+    // 앱에 포함된 수채화는 바로 그리기 시작한다
+    paintAs('watercolor', source, mine);
 
     let next: Cut = { uri, width, height, lifted: false };
     if (isAvailable()) {
@@ -139,9 +163,25 @@ export function useCapture() {
   };
   const setMemo = (memo: string) => setDraft((d) => ({ ...d, memo }));
 
-  /** 술장에 담는다. 성공하면 true. */
-  const save = (): boolean => {
-    if (!cut) return false;
+  /** 원본 사진을 줄여 보관한다. 실패해도 저장은 계속한다. */
+  const keepPhoto = async (): Promise<string | undefined> => {
+    if (!photo || Platform.OS === 'web') return undefined;
+    try {
+      const size = photo.width >= photo.height ? { width: KEEP_PHOTO_SIDE } : { height: KEEP_PHOTO_SIDE };
+      const small = await (await ImageManipulator.manipulate(photo.uri).resize(size).renderAsync()).saveAsync({
+        format: SaveFormat.JPEG,
+        compress: 0.8,
+      });
+      return keepImage(small.uri, `${id}-photo`);
+    } catch {
+      return undefined;
+    }
+  };
+
+  /** 술장에 담는다. 성공하면 true. 고른 테마의 그림이 없으면 사진 누끼로 담는다. */
+  const save = async (): Promise<boolean> => {
+    if (!cut || saving) return false;
+    setSaving(true);
     try {
       add({
         id,
@@ -152,6 +192,8 @@ export function useCapture() {
         sticker: cut.stickerUri ? keepImage(cut.stickerUri, `${id}-sticker`) : undefined,
         art: art ? keepImage(art.uri, `${id}-art`) : undefined,
         artSticker: art?.stickerUri ? keepImage(art.stickerUri, `${id}-art-sticker`) : undefined,
+        theme: art ? theme : undefined,
+        photo: await keepPhoto(),
         width: cut.width,
         height: cut.height,
         createdAt: Date.now(),
@@ -160,10 +202,33 @@ export function useCapture() {
     } catch {
       setSaveError(true);
       return false;
+    } finally {
+      setSaving(false);
     }
   };
 
-  return { id, stage, photo, cut, draft, guess, guessError, paint, art, paintError, saveError, process, reset, save, setName, setCategory, setMemo };
+  return {
+    id,
+    stage,
+    photo: photo?.uri ?? null,
+    cut,
+    draft,
+    guess,
+    guessError,
+    theme,
+    art,
+    paint,
+    paintError,
+    saveError,
+    saving,
+    process,
+    reset,
+    save,
+    paintAs,
+    setName,
+    setCategory,
+    setMemo,
+  };
 }
 
 export type Capture = ReturnType<typeof useCapture>;
