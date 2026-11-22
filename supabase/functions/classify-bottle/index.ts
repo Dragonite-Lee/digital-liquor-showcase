@@ -67,7 +67,11 @@ Deno.serve(async (req) => {
     }),
   });
 
-  if (!res.ok) return json({ error: 'classifier upstream failed', status: res.status }, 502);
+  if (!res.ok) {
+    const detail = (await res.text()).slice(0, 300);
+    console.error('anthropic', res.status, detail);
+    return json({ error: 'classifier upstream failed', status: res.status, detail }, 502);
+  }
 
   const data = await res.json();
   const text: string = data?.content?.[0]?.text ?? '';

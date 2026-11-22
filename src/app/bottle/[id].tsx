@@ -3,8 +3,9 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BottleImage } from '@/components/BottleImage';
 import { CategoryPicker } from '@/components/CategoryPicker';
+import { Clipping } from '@/components/Clipping';
+import { bottleRatio } from '@/components/FloatingField';
 import { Halo } from '@/components/Halo';
 import { NotePaper } from '@/components/NotePaper';
 import { useCellar } from '@/store';
@@ -59,7 +60,13 @@ export default function BottleDetail() {
 
         <View style={styles.stage}>
           <Halo style={styles.halo} />
-          <BottleImage bottle={bottle} style={styles.image} />
+          <Clipping
+            image={bottle.image}
+            ratio={bottleRatio(bottle)}
+            seedId={bottle.id}
+            height={330}
+            photo={!bottle.sticker}
+          />
         </View>
 
         <TextInput
@@ -87,7 +94,6 @@ const styles = StyleSheet.create({
   bar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   stage: { height: 340, alignItems: 'center', justifyContent: 'flex-end', marginTop: space.s, marginBottom: space.l },
   halo: { bottom: 20 },
-  image: { width: '70%', height: 320 },
   name: { fontFamily: font.serifBold, fontSize: 26, lineHeight: 34, color: color.label, padding: 0 },
   date: { fontFamily: font.serif, fontSize: 13, color: color.mist, marginTop: 6, marginBottom: space.m },
 });

@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -14,6 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CategoryPicker } from '@/components/CategoryPicker';
+import { Clipping } from '@/components/Clipping';
 import { Halo } from '@/components/Halo';
 import { NotePaper } from '@/components/NotePaper';
 import type { Capture, Cut, GuessState } from '@/lib/useCapture';
@@ -40,11 +40,12 @@ export function Review({ capture, cut, onSaved }: { capture: Capture; cut: Cut; 
       >
         <View style={styles.stageBox}>
           <Halo style={styles.halo} />
-          <Image
-            source={{ uri: cut.uri }}
-            style={[styles.cutout, !cut.lifted && styles.cutoutPlain]}
-            contentFit={cut.lifted ? 'contain' : 'cover'}
-            accessibilityLabel="방금 찍은 병"
+          <Clipping
+            image={cut.uri}
+            ratio={cut.width && cut.height ? cut.width / cut.height : 0.42}
+            seedId={capture.id}
+            height={330}
+            photo={!cut.lifted}
           />
         </View>
         {!cut.lifted && (
@@ -67,6 +68,7 @@ export function Review({ capture, cut, onSaved }: { capture: Capture; cut: Cut; 
           {reading ? <ActivityIndicator color={color.brass} /> : <Ionicons name="pencil" size={16} color={color.mist} />}
         </View>
         <Text style={styles.nameHint}>{HINT[guess]}</Text>
+        {__DEV__ && capture.guessError && <Text style={styles.debug}>개발용 — 라벨: {capture.guessError}</Text>}
 
         <CategoryPicker value={draft.category} onChange={capture.setCategory} />
         <NotePaper value={draft.memo} onChangeText={capture.setMemo} />
@@ -98,10 +100,8 @@ export function Review({ capture, cut, onSaved }: { capture: Capture; cut: Cut; 
 
 const styles = StyleSheet.create({
   review: { flex: 1, backgroundColor: color.glass },
-  stageBox: { height: 320, alignItems: 'center', justifyContent: 'flex-end', marginBottom: space.l },
+  stageBox: { height: 350, alignItems: 'center', justifyContent: 'flex-end', marginBottom: space.l },
   halo: { bottom: 10 },
-  cutout: { width: '70%', height: 300 },
-  cutoutPlain: { width: 200, borderRadius: 8 },
   notice: { fontFamily: font.serif, fontSize: 13, lineHeight: 20, color: color.mist, marginBottom: space.m },
   debug: { fontSize: 11, color: '#F0A8A8', marginBottom: space.m },
   nameRow: {

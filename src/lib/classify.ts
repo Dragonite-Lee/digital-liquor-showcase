@@ -6,6 +6,9 @@ import { type CategoryId, isCategory } from './categories';
 
 export type Guess = { category: CategoryId; name: string };
 
+/** 마지막 분류 실패 이유 (개발 빌드 화면에만 보여 준다) */
+export let lastClassifyError: string | null = null;
+
 const URL = process.env.EXPO_PUBLIC_CLASSIFY_URL;
 const KEY = process.env.EXPO_PUBLIC_CLASSIFY_KEY;
 
@@ -43,11 +46,21 @@ export async function classifyBottle(photoUri: string, width: number, height: nu
       },
       body: JSON.stringify({ image, mediaType: 'image/jpeg' }),
     });
-    if (!res.ok) return null;
+    lastClassifyError = null;
+    if (!res.ok) {
+      lastClassifyError = `HTTP ${res.status} ${(await res.text()).slice(0, 200)}`;
+      console.warn('[classify]', lastClassifyError);
+      return null;
+    }
     const data = await res.json();
-    if (!isCategory(data?.category)) return null;
+    if (!isCategory(data?.category)) {
+      lastClassifyError = `알 수 없는 응답 ${JSON.stringify(data).slice(0, 200)}`;
+      return null;
+    }
     return { category: data.category, name: typeof data.name === 'string' ? data.name : '' };
-  } catch {
+  } catch (e) {
+    lastClassifyError = e instanceof Error ? e.message : String(e);
+    console.warn('[classify]', lastClassifyError);
     return null;
   }
 }

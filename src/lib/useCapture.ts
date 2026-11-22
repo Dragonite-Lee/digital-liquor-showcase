@@ -6,7 +6,7 @@ import { isAvailable, liftSubject } from 'subject-lift';
 import { newId, useCellar } from '@/store';
 
 import type { CategoryId } from './categories';
-import { classifyBottle, classifyEnabled } from './classify';
+import { classifyBottle, classifyEnabled, lastClassifyError } from './classify';
 import { keepImage } from './images';
 
 export type Cut = {
@@ -35,7 +35,10 @@ export function useCapture() {
   const [cut, setCut] = useState<Cut | null>(null);
   const [draft, setDraft] = useState(EMPTY);
   const [guess, setGuess] = useState<GuessState>('off');
+  const [guessError, setGuessError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState(false);
+  // 확인 화면과 담은 뒤가 같은 신문 조각으로 보이도록 id를 미리 정한다
+  const [id, setId] = useState(newId);
 
   // 사용자가 직접 고친 값은 AI 추정이 뒤늦게 와도 덮어쓰지 않는다
   const touched = useRef({ name: false, category: false });
@@ -58,8 +61,10 @@ export function useCapture() {
     touched.current = { name: false, category: false };
     setPhoto(uri);
     setDraft(EMPTY);
+    setId(newId());
     setStage('lifting');
     setGuess(classifyEnabled ? 'reading' : 'off');
+    setGuessError(null);
 
     const guessing = classifyBottle(uri, width, height);
 
@@ -93,6 +98,7 @@ export function useCapture() {
       setGuess(useName ? 'found' : 'missed');
     } else if (classifyEnabled) {
       setGuess('missed');
+      setGuessError(lastClassifyError);
     }
   };
 
@@ -110,7 +116,6 @@ export function useCapture() {
   const save = (): boolean => {
     if (!cut) return false;
     try {
-      const id = newId();
       add({
         id,
         name: draft.name.trim(),
@@ -129,7 +134,7 @@ export function useCapture() {
     }
   };
 
-  return { stage, photo, cut, draft, guess, saveError, process, reset, save, setName, setCategory, setMemo };
+  return { id, stage, photo, cut, draft, guess, guessError, saveError, process, reset, save, setName, setCategory, setMemo };
 }
 
 export type Capture = ReturnType<typeof useCapture>;

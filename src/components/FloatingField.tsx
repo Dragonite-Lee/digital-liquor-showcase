@@ -13,7 +13,7 @@ import { seeded } from '@/lib/seeded';
 import type { Bottle } from '@/store';
 import { color } from '@/theme';
 
-import { BottleImage } from './BottleImage';
+import { Clipping, pickClipping } from './Clipping';
 
 const TAU = Math.PI * 2;
 
@@ -28,6 +28,9 @@ type Body = {
   ay: number;
 };
 
+export const bottleRatio = (b: Bottle) =>
+  b.width && b.height ? Math.min(1.2, Math.max(0.25, b.width / b.height)) : 0.42;
+
 /** 화면을 느슨한 칸으로 나눠 병의 중심 자리를 정한다. 병이 늘면 조금씩 작아진다. */
 function layout(bottles: Bottle[], W: number, H: number): Body[] {
   const n = bottles.length;
@@ -36,7 +39,8 @@ function layout(bottles: Bottle[], W: number, H: number): Body[] {
   const rows = Math.ceil(n / cols);
   const cw = W / cols;
   const ch = H / rows;
-  const baseH = Math.min(210, ch * 0.92, cw * 2.1);
+  // 신문 조각 높이 (병보다 여백만큼 크다)
+  const baseH = Math.min(240, ch * 1.02, cw * 2.3);
 
   // 최근 병이 늘 같은 구석에 몰리지 않게 자리를 섞는다
   const order = bottles
@@ -48,8 +52,7 @@ function layout(bottles: Bottle[], W: number, H: number): Body[] {
     const row = Math.floor(slot / cols);
     const depth = seeded(b.id, 7);
     const h = baseH * (0.72 + depth * 0.28);
-    const ratio = b.width && b.height ? Math.min(0.9, Math.max(0.28, b.width / b.height)) : 0.42;
-    const w = h * ratio;
+    const w = h * pickClipping(b.id, bottleRatio(b)).aspect;
     const x = (col + 0.5) * cw + (seeded(b.id, 8) - 0.5) * cw * 0.24;
     const y = (row + 0.5) * ch + (seeded(b.id, 9) - 0.5) * ch * 0.24;
     return {
@@ -118,7 +121,13 @@ const Drifter = memo(function Drifter({ body, clock, fresh, onOpen }: DrifterPro
         accessibilityLabel={`${body.bottle.name || '이름 없는 병'} 자세히 보기`}
         style={({ pressed }) => [StyleSheet.absoluteFill, pressed && { opacity: 0.7 }]}
       >
-        <BottleImage bottle={body.bottle} style={StyleSheet.absoluteFill} sticker />
+        <Clipping
+          image={body.bottle.image}
+          ratio={bottleRatio(body.bottle)}
+          seedId={id}
+          height={body.h}
+          photo={!body.bottle.sticker}
+        />
       </Pressable>
     </Animated.View>
   );
