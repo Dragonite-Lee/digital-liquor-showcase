@@ -41,7 +41,7 @@ export async function illustrateBottle(
     headers: { 'Content-Type': 'application/json', ...(KEY ? { apikey: KEY } : {}) },
     body: JSON.stringify({ image: input.base64, mediaType: png ? 'image/png' : 'image/jpeg', theme }),
   });
-  if (res.status === 422) throw new Error('그림 모델의 안전 필터가 이 병을 막았어요 (라벨의 인물·상표 그림 때문일 수 있어요)');
+  if (res.status === 422) throw new Error(`그림 모델의 안전 필터가 이 병을 막았어요 — ${(await res.text()).slice(0, 240)}`);
   if (!res.ok) throw new Error(`HTTP ${res.status} ${(await res.text()).slice(0, 200)}`);
   const data = await res.json();
   if (typeof data?.image !== 'string') throw new Error('그림을 받지 못했어요');
