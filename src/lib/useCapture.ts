@@ -147,6 +147,7 @@ export function useCapture() {
         category: useCategory ? found.category : d.category,
       }));
       setGuess(useName ? 'found' : 'missed');
+      if (!useName) setGuessError(lastClassifyError);
     } else if (classifyEnabled) {
       setGuess('missed');
       setGuessError(lastClassifyError);

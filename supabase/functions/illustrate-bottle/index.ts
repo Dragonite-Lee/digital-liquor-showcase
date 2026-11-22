@@ -10,6 +10,13 @@ const KEEP = [
   'Plain pure white background. No table, no shadow, no hands, no other objects, no text outside the label.',
 ].join(' ');
 
+// 안전 필터에 막혔을 때 쓰는 덜 엄격한 버전 (상표 글씨를 그대로 옮기라고 하지 않는다)
+const SOFT_KEEP = [
+  'Keep the bottle silhouette, cap, glass color and the overall label shapes and colors.',
+  'One single bottle, upright, centered, the whole bottle visible with some margin.',
+  'Plain pure white background. No table, no shadow, no hands, no other objects.',
+].join(' ');
+
 const STYLES: Record<string, string> = {
   watercolor:
     'Redraw the bottle from the input image as a hand-painted watercolor illustration. Fine ink outlines, soft translucent watercolor washes, light pencil texture, gentle color bleeding at the edges, white highlights left as bare paper.',
@@ -64,29 +71,48 @@ Deno.serve(async (req) => {
     return json({ error: 'Body must be { image: base64, mediaType? }' }, 400);
   }
 
-  const form = new FormData();
-  form.append('prompt', `${style} ${KEEP}`);
-  form.append('input_image_0', new Blob([decode(image)], { type: mediaType }), mediaType === 'image/png' ? 'bottle.png' : 'bottle.jpg');
-  form.append('width', '640');
-  form.append('height', '1024');
+  const bytes = decode(image);
+  // 모델의 안전 필터가 결과를 막는 경우가 있다(라벨의 인물 그림·상표 글씨 등으로 추정).
+  // 막히면 상표 글씨를 그대로 옮기라는 부분을 빼고, 시드를 바꿔 몇 번 더 시도한다.
+  const prompts = [
+    `${style} ${KEEP}`,
+    `${style} ${SOFT_KEEP}`,
+    `${style} ${SOFT_KEEP} Simplify any portrait on the label into a few loose painted strokes.`,
+  ];
+  let last = '';
+  let lastStatus = 0;
+  for (const prompt of prompts) {
+    const form = new FormData();
+    form.append('prompt', prompt);
+    form.append('input_image_0', new Blob([bytes], { type: mediaType }), mediaType === 'image/png' ? 'bottle.png' : 'bottle.jpg');
+    form.append('width', '640');
+    form.append('height', '1024');
+    form.append('seed', String(Math.floor(Math.random() * 2_000_000_000)));
 
-  const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${account}/ai/run/${MODEL}`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
-    body: form,
-  });
-
-  const text = await res.text();
-  if (!res.ok) {
-    console.error('workers-ai', res.status, text.slice(0, 300));
-    return json({ error: 'illustrator upstream failed', status: res.status, detail: text.slice(0, 300) }, 502);
+    const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${account}/ai/run/${MODEL}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    });
+    const text = await res.text();
+    if (res.ok) {
+      try {
+        const data = JSON.parse(text);
+        const out = data?.result?.image ?? data?.image;
+        if (typeof out === 'string') return json({ image: out, attempt: prompts.indexOf(prompt) + 1 });
+      } catch {
+        // 아래에서 다음 시도
+      }
+    }
+    last = text.slice(0, 300);
+    lastStatus = res.status;
+    console.error('workers-ai', res.status, last);
+    // 안전 필터가 아닌 오류(인증·한도 등)는 다시 해도 같으니 바로 멈춘다
+    if (!/flagged/i.test(text)) break;
   }
-  try {
-    const data = JSON.parse(text);
-    const out = data?.result?.image ?? data?.image;
-    if (typeof out !== 'string') throw new Error('no image');
-    return json({ image: out });
-  } catch {
-    return json({ error: 'unexpected upstream response', detail: text.slice(0, 300) }, 502);
-  }
+  const flagged = /flagged/i.test(last);
+  return json(
+    { error: flagged ? 'flagged' : 'illustrator upstream failed', status: lastStatus, detail: last },
+    flagged ? 422 : 502,
+  );
 });

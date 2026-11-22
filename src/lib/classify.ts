@@ -57,6 +57,7 @@ export async function classifyBottle(photoUri: string, width: number, height: nu
       lastClassifyError = `알 수 없는 응답 ${JSON.stringify(data).slice(0, 200)}`;
       return null;
     }
+    if (!data.name && data.raw) lastClassifyError = `이름 없음 — 모델 답: ${data.raw}`;
     return { category: data.category, name: typeof data.name === 'string' ? data.name : '' };
   } catch (e) {
     lastClassifyError = e instanceof Error ? e.message : String(e);

@@ -80,8 +80,9 @@ Deno.serve(async (req) => {
     const parsed = JSON.parse(match ? match[0] : text);
     const category = CATEGORIES.includes(parsed.category) ? parsed.category : 'etc';
     const name = typeof parsed.name === 'string' ? parsed.name.slice(0, 80) : '';
-    return json({ category, name });
+    // 이름을 못 읽었으면 원인을 보려고 모델 답을 같이 돌려준다 (앱은 개발 빌드에서만 보여 준다)
+    return json(name ? { category, name } : { category, name, raw: text.slice(0, 200) });
   } catch {
-    return json({ category: 'etc', name: '' });
+    return json({ category: 'etc', name: '', raw: text.slice(0, 200) });
   }
 });
