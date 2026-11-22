@@ -6,6 +6,7 @@ import { DEFAULT_STYLES } from './prompts.ts';
 const MODEL = Deno.env.get('ILLUSTRATE_MODEL') ?? '@cf/black-forest-labs/flux-2-klein-9b';
 // FLUX의 안전 필터에 막히면 쓰는 모델 (Cloudflare 카탈로그의 Google 모델, Cloudflare 크레딧으로 결제)
 const FALLBACK = Deno.env.get('ILLUSTRATE_FALLBACK') ?? 'google/nano-banana';
+const GATEWAY = Deno.env.get('CF_GATEWAY_ID') ?? 'default';
 
 // 모든 테마 공통: 병 모양·라벨은 그대로, 배경은 흰색(앱에서 다시 병만 떼어 낸다)
 // 모든 테마 뒤에 붙이는 공통 지시. 테마 프롬프트에 이미 들어 있어 짧게 둔다.
@@ -71,7 +72,12 @@ Deno.serve(async (req) => {
   form.append('width', '640');
   form.append('height', '1024');
   form.append('seed', String(Math.floor(Math.random() * 2_000_000_000)));
-  const first = await fetch(`${base}/${MODEL}`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form });
+  // 게이트웨이를 지정해 FLUX 호출도 AI Gateway 로그에 남긴다 (결제는 Workers AI 무료 한도 그대로)
+  const first = await fetch(`${base}/${MODEL}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'cf-aig-gateway-id': GATEWAY },
+    body: form,
+  });
   const firstText = await first.text();
   if (first.ok) {
     try {
@@ -90,7 +96,7 @@ Deno.serve(async (req) => {
   // 2) 대체 모델 — FLUX의 안전 필터가 상표 라벨을 자주 막는다
   const second = await fetch(base, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', 'cf-aig-gateway-id': GATEWAY },
     body: JSON.stringify({
       model: FALLBACK,
       input: {
