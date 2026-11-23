@@ -74,6 +74,16 @@ npx supabase secrets unset PROMPT_WATERCOLOR   # 기본값으로 되돌리기
 
 주소는 `EXPO_PUBLIC_CLASSIFY_URL`에서 함수 이름만 바꿔 쓴다. 실패하면 사진 누끼로 담고, 병 화면에서 다시 그릴 수 있다.
 
+## 테마 미리보기 만들기
+
+테마 고르기 화면의 미리보기는 실제 브랜드가 아닌 가상 병(MAISON LUNE)으로 만든다. 앱에 실제 상표를 넣어 배포하지 않기 위해서다.
+
+```bash
+python3 scripts/make-preview-bottle.py scripts/preview-bottle.jpg   # 가상 병 사진 (이미 들어 있음)
+node scripts/make-theme-previews.mjs                                 # 4장 생성 → assets/themes/*.jpg (약 $0.16)
+node scripts/make-theme-previews.mjs vangogh                         # 한 테마만 다시
+```
+
 ## 구조
 
 ```
