@@ -3,6 +3,7 @@ import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { Platform } from 'react-native';
 
 import { type CategoryId, isCategory } from './categories';
+import { authHeaders } from './supabase';
 
 export type Guess = { category: CategoryId; name: string };
 
@@ -10,7 +11,6 @@ export type Guess = { category: CategoryId; name: string };
 export let lastClassifyError: string | null = null;
 
 const URL = process.env.EXPO_PUBLIC_CLASSIFY_URL;
-const KEY = process.env.EXPO_PUBLIC_CLASSIFY_KEY;
 
 /** 분류 서버로 보내는 사진의 긴 변(px). 라벨 글자는 읽히고 전송은 가벼운 크기. */
 const SEND_SIDE = 1280;
@@ -41,8 +41,8 @@ export async function classifyBottle(photoUri: string, width: number, height: nu
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        // 새 Supabase 키는 JWT가 아니라 Authorization이 아닌 apikey 헤더로 보낸다
-        ...(KEY ? { apikey: KEY } : {}),
+        // apikey(프로젝트 publishable 키) + Authorization(익명 로그인한 사용자 토큰)
+        ...(await authHeaders()),
       },
       body: JSON.stringify({ image, mediaType: 'image/jpeg' }),
     });

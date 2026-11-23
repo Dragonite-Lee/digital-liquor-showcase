@@ -56,20 +56,19 @@
 
 ### 2단계: 사용자 식별과 데이터베이스
 
-- [ ] **Supabase 익명 로그인**
-  - 대시보드에서 Anonymous sign-ins를 켭니다.
-  - 앱은 처음 실행할 때 `signInAnonymously()`를 부르고, 세션은 AsyncStorage에 둡니다.
-- [ ] **함수 인증 변경**
-  - `verify_jwt = true`로 바꿉니다.
-  - publishable key 검사는 없애고 사용자 JWT로 확인합니다.
-- [ ] **테이블** (모두 RLS를 켜서 본인 행만 읽게 합니다)
-  - `profiles(id = auth.uid, created_at)`
-  - `entitlements(user_id, product_id, source, transaction_id, created_at)`: 산 테마 목록
-  - `art_jobs(id, user_id, bottle_id, theme, status, attempts, input_path, output_path, input_hash, error, model, cost_usd, created_at, updated_at)`
-  - `usage_daily(user_id, day, art_count, classify_count)`
-- [ ] **Storage 버킷**
-  - `originals`와 `art`를 만들고 둘 다 private로 둡니다.
-  - 경로 정책은 `{user_id}/...`이며 본인만 접근할 수 있게 합니다.
+- [x] **Supabase 익명 로그인** (코드 완료, 대시보드 설정 필요)
+  - 앱은 처음 실행할 때 `signInAnonymously()`를 부르고, 세션은 AsyncStorage에 둡니다. `src/lib/supabase.ts`
+  - 대시보드 Authentication → Sign In / Providers에서 **Allow anonymous sign-ins**를 켜야 합니다.
+  - 익명 가입 남용은 Supabase 기본 IP 한도(시간당 30회)로 막습니다. 출시 전 CAPTCHA(Turnstile)를 검토합니다.
+- [x] **함수 인증 변경**
+  - 플랫폼 `verify_jwt`는 새 키 체계와 맞지 않는 경우가 있어 `false`로 두고, 함수 안에서 `getClaims`로 사용자 토큰을 검증합니다. `supabase/functions/_shared/auth.ts`
+  - 토큰이 없으면 401입니다. publishable 키만으로는 더 이상 부를 수 없습니다.
+- [x] **테이블** `supabase/migrations/20261123000000_users_and_jobs.sql`
+  - `profiles`(가입 시 트리거로 자동 생성), `entitlements`, `art_jobs`, `usage_daily`
+  - 모두 RLS를 켜고 본인 행 읽기만 허용합니다. 쓰기는 함수(secret 키)만 합니다.
+  - 같은 영수증(transaction_id)은 한 계정에만 기록됩니다. 계정이 지워지면 행도 같이 지워집니다.
+- [x] **Storage 버킷**: `originals`(앱이 본인 폴더에 업로드), `art`(함수만 쓰고 본인만 읽음), 둘 다 비공개
+- 검증: 로컬 Postgres에서 마이그레이션 적용과 RLS 동작(남의 행·폴더 차단, 앱 직접 쓰기 차단)을 확인했습니다.
 
 ### 3단계: 결제
 

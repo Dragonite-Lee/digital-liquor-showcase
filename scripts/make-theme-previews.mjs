@@ -19,6 +19,16 @@ const url = (env.EXPO_PUBLIC_ILLUSTRATE_URL || env.EXPO_PUBLIC_CLASSIFY_URL || '
 const key = env.EXPO_PUBLIC_CLASSIFY_KEY;
 if (!url || !key) throw new Error('.env에 EXPO_PUBLIC_CLASSIFY_URL / EXPO_PUBLIC_CLASSIFY_KEY가 필요해요');
 
+// 함수가 사용자 토큰을 요구하므로 익명 사용자로 한 번 로그인한다
+const project = url.match(/^(https:\/\/[^/]+)/)[1];
+const signup = await fetch(`${project}/auth/v1/signup`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', apikey: key },
+  body: JSON.stringify({}),
+});
+const session = await signup.json();
+if (!session.access_token) throw new Error(`익명 로그인 실패 — 대시보드에서 Anonymous sign-ins를 켜 주세요: ${JSON.stringify(session).slice(0, 200)}`);
+
 const image = readFileSync('scripts/preview-bottle.jpg').toString('base64');
 const themes = process.argv.slice(2).length ? process.argv.slice(2) : ['watercolor', 'monet', 'vangogh', 'modern'];
 
@@ -26,7 +36,7 @@ for (const theme of themes) {
   process.stdout.write(`${theme} … `);
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', apikey: key },
+    headers: { 'Content-Type': 'application/json', apikey: key, Authorization: `Bearer ${session.access_token}` },
     body: JSON.stringify({ image, mediaType: 'image/jpeg', theme }),
   });
   const text = await res.text();

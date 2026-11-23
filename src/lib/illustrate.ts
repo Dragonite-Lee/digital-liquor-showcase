@@ -3,10 +3,10 @@ import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { Platform } from 'react-native';
 import { isAvailable, liftSubject } from 'subject-lift';
 
+import { authHeaders } from './supabase';
 import type { ThemeId } from './themes';
 
 const CLASSIFY_URL = process.env.EXPO_PUBLIC_CLASSIFY_URL;
-const KEY = process.env.EXPO_PUBLIC_CLASSIFY_KEY;
 // 분류 함수와 같은 Supabase 프로젝트에 있는 그림 함수
 const URL = process.env.EXPO_PUBLIC_ILLUSTRATE_URL ?? CLASSIFY_URL?.replace('classify-bottle', 'illustrate-bottle');
 
@@ -38,9 +38,10 @@ export async function illustrateBottle(
 
   const res = await fetch(URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...(KEY ? { apikey: KEY } : {}) },
+    headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
     body: JSON.stringify({ image: input.base64, mediaType: png ? 'image/png' : 'image/jpeg', theme }),
   });
+  if (res.status === 401) throw new Error('서버 로그인이 안 됐어요 — 네트워크를 확인하고 다시 시도해 주세요');
   if (res.status === 422) throw new Error(`그림 모델의 안전 필터가 이 병을 막았어요 — ${(await res.text()).slice(0, 240)}`);
   if (!res.ok) throw new Error(`HTTP ${res.status} ${(await res.text()).slice(0, 200)}`);
   const data = await res.json();

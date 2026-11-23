@@ -1,7 +1,8 @@
 // 병 사진 → 테마별 그림(수채화·모네·고흐·현대회화). Supabase Edge Function (Deno).
-// 배포: supabase functions deploy illustrate-bottle   (verify_jwt는 supabase/config.toml에서 끔)
+// 배포: supabase functions deploy illustrate-bottle   (verify_jwt는 끄고 함수 안에서 사용자 토큰을 검증한다)
 // 모델 선택: providers/index.ts (기본 Cloudflare 경유 나노바나나, ART_PROVIDER=google로 직접 호출)
-import { cors, json, knownCaller } from '../_shared/http.ts';
+import { requireUser } from '../_shared/auth.ts';
+import { cors, json } from '../_shared/http.ts';
 import { DEFAULT_STYLES } from './prompts.ts';
 import { ProviderError, providerFor } from './providers/index.ts';
 
@@ -21,7 +22,9 @@ const MAX_IMAGE = 3_000_000;
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ error: 'POST only' }, 405);
-  if (!knownCaller(req)) return json({ error: 'unknown apikey' }, 401);
+  // 익명 로그인 포함, 로그인한 사용자만 (사용량 한도·구매 확인의 기준이 된다)
+  const caller = await requireUser(req);
+  if (caller instanceof Response) return caller;
 
   let image: string;
   let mediaType: string;
@@ -39,11 +42,12 @@ Deno.serve(async (req) => {
 
   const provider = providerFor(theme);
   try {
+    console.log('art', caller.id, theme, provider.id);
     const out = await provider.generate({ image, mediaType, prompt: `${STYLES[theme]} ${KEEP}` });
     return json({ image: out.image, model: out.model, provider: provider.id });
   } catch (e) {
     if (e instanceof ProviderError) {
-      console.error(provider.id, e.code, e.status, e.detail);
+      console.error(provider.id, caller.id, e.code, e.status, e.detail);
       const status = e.code === 'flagged' ? 422 : e.code === 'config' ? 500 : 502;
       return json({ error: e.code, status: e.status, detail: e.detail }, status);
     }

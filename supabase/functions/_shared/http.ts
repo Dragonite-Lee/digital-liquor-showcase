@@ -8,13 +8,6 @@ export const cors = {
 export const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
 
-/** 이 프로젝트의 publishable 키를 들고 온 요청만 받는다 (공개값이라 남용을 완전히 막지는 못한다 — 출시 전 JWT로 바꾼다) */
-export function knownCaller(req: Request): boolean {
-  const caller = req.headers.get('apikey') ?? '';
-  const known = `${Deno.env.get('SUPABASE_PUBLISHABLE_KEYS') ?? ''} ${Deno.env.get('SUPABASE_ANON_KEY') ?? ''}`;
-  return caller.length >= 20 && known.includes(caller);
-}
-
 /** 잠시 뒤 다시 시도하면 될 수 있는 응답: 한도 초과, 서버 쪽 일시 오류 */
 export const RETRYABLE = new Set([408, 429, 500, 502, 503, 504, 529]);
 

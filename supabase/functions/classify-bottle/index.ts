@@ -1,7 +1,8 @@
 // 술병 사진 → { category, name } 분류. Supabase Edge Function (Deno).
-// 배포: supabase functions deploy classify-bottle  (verify_jwt는 supabase/config.toml에서 끔)
+// 배포: supabase functions deploy classify-bottle  (verify_jwt는 끄고 함수 안에서 사용자 토큰을 검증한다)
 // 시크릿: supabase secrets set ANTHROPIC_API_KEY=...
-import { cors, fetchWithRetry, json, knownCaller } from '../_shared/http.ts';
+import { requireUser } from '../_shared/auth.ts';
+import { cors, fetchWithRetry, json } from '../_shared/http.ts';
 
 const MODEL = Deno.env.get('CLASSIFY_MODEL') ?? 'claude-haiku-5-5';
 const CATEGORIES = [
@@ -12,7 +13,9 @@ const CATEGORIES = [
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ error: 'POST only' }, 405);
-  if (!knownCaller(req)) return json({ error: 'unknown apikey' }, 401);
+  // 익명 로그인 포함, 로그인한 사용자만 (사용량 한도·구매 확인의 기준이 된다)
+  const caller = await requireUser(req);
+  if (caller instanceof Response) return caller;
 
   const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
   if (!apiKey) return json({ error: 'ANTHROPIC_API_KEY is not set' }, 500);
