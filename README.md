@@ -54,12 +54,28 @@ cp .env.example .env                                     # URL과 publishable �
 
 ## 수채화 그리기 켜기
 
-찍은 병을 Cloudflare Workers AI(FLUX.2 [klein] 9B)로 수채화 일러스트로 다시 그린다. 같은 Supabase 프로젝트에 함수를 하나 더 올린다.
+찍은 병을 이미지 모델로 다시 그린다. 기본은 Cloudflare AI Gateway를 거친 Google 나노바나나(Cloudflare 크레딧 결제).
 
 ```bash
-npx supabase secrets set CF_ACCOUNT_ID=... CF_API_TOKEN=...   # 토큰 권한: Account > Workers AI > Read
+npx supabase secrets set CF_ACCOUNT_ID=... CF_API_TOKEN=...
 npx supabase functions deploy illustrate-bottle
 ```
+
+### 그림 모델 바꾸기
+
+모델 호출은 `supabase/functions/illustrate-bottle/providers/`에 모델별로 나뉘어 있다. 한도 초과(429)나 서버 오류(5xx)는 최대 3번까지만 다시 시도한다.
+
+| 값 | 설명 | 필요한 시크릿 |
+|---|---|---|
+| `cloudflare` (기본) | Cloudflare 경유 나노바나나. `ILLUSTRATE_TRY_FLUX=1`이면 FLUX부터 시도 | `CF_ACCOUNT_ID`, `CF_API_TOKEN` |
+| `google` | Gemini API 직접 호출 (수수료 없음) | `GOOGLE_API_KEY`, 선택 `GOOGLE_IMAGE_MODEL` |
+
+```bash
+npx supabase secrets set ART_PROVIDER=google          # 전체
+npx supabase secrets set ART_PROVIDER_MONET=google    # 테마 하나만
+```
+
+함수 테스트(실제 모델을 부르지 않아 비용 없음): `deno test -A supabase/functions/_tests`
 
 ### 그림 프롬프트 바꾸기
 

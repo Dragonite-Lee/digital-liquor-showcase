@@ -91,7 +91,7 @@ export function Review({ capture, cut, onSaved }: { capture: Capture; cut: Cut; 
           <TextInput
             value={draft.name}
             onChangeText={capture.setName}
-            placeholder={reading ? '라벨을 읽는 중…' : '병 이름'}
+            placeholder={reading ? '라벨을 읽는 중…' : guess === 'missed' ? '병 이름을 적어 주세요' : '병 이름'}
             placeholderTextColor={color.mist}
             style={styles.name}
             accessibilityLabel="병 이름"

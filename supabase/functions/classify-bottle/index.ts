@@ -1,28 +1,18 @@
 // 술병 사진 → { category, name } 분류. Supabase Edge Function (Deno).
 // 배포: supabase functions deploy classify-bottle  (verify_jwt는 supabase/config.toml에서 끔)
 // 시크릿: supabase secrets set ANTHROPIC_API_KEY=...
+import { cors, fetchWithRetry, json, knownCaller } from '../_shared/http.ts';
+
 const MODEL = Deno.env.get('CLASSIFY_MODEL') ?? 'claude-haiku-5-5';
 const CATEGORIES = [
   'whisky', 'wine', 'tequila', 'beer', 'sake', 'soju', 'makgeolli',
   'gin', 'rum', 'vodka', 'brandy', 'liqueur', 'champagne', 'etc',
 ];
 
-const cors = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ error: 'POST only' }, 405);
-
-  // 이 프로젝트의 publishable 키를 들고 온 요청만 받는다 (키 자체는 공개값이라 남용을 완전히 막지는 못한다)
-  const caller = req.headers.get('apikey') ?? '';
-  const known = `${Deno.env.get('SUPABASE_PUBLISHABLE_KEYS') ?? ''} ${Deno.env.get('SUPABASE_ANON_KEY') ?? ''}`;
-  if (caller.length < 20 || !known.includes(caller)) return json({ error: 'unknown apikey' }, 401);
+  if (!knownCaller(req)) return json({ error: 'unknown apikey' }, 401);
 
   const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
   if (!apiKey) return json({ error: 'ANTHROPIC_API_KEY is not set' }, 500);
@@ -39,7 +29,7 @@ Deno.serve(async (req) => {
     return json({ error: 'Body must be { image: base64, mediaType? }' }, 400);
   }
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  const res = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
       'x-api-key': apiKey,
@@ -48,7 +38,7 @@ Deno.serve(async (req) => {
     },
     body: JSON.stringify({
       model: MODEL,
-      max_tokens: 200,
+      max_tokens: 300,
       messages: [
         {
           role: 'user',
@@ -57,15 +47,18 @@ Deno.serve(async (req) => {
             {
               type: 'text',
               text:
-                'This is a photo of a liquor bottle. Read the label and answer with JSON only, no prose: ' +
-                `{"category": one of ${JSON.stringify(CATEGORIES)}, "name": "brand and expression as printed on the label, e.g. Macallan 12 Double Cask"}. ` +
-                'Sparkling wine goes to "champagne". If it is not a liquor bottle or the label is unreadable, use category "etc" and name "".',
+                'This is a photo of a liquor bottle. Identify it and answer with JSON only, no prose: ' +
+                `{"category": one of ${JSON.stringify(CATEGORIES)}, "name": "brand and expression, e.g. Macallan 12 Double Cask"}. ` +
+                'Use every clue: label text (any language or script), logos, embossing, the cap, and the bottle shape. ' +
+                'If the text is partly hidden, blurry or stylised, give your best guess of the brand rather than leaving it empty; ' +
+                'omit the age or expression if you cannot read it and give the brand alone. ' +
+                'Sparkling wine goes to "champagne". Use name "" only when there is no liquor bottle in the photo.',
             },
           ],
         },
       ],
     }),
-  });
+  }, { label: 'anthropic' });
 
   if (!res.ok) {
     const detail = (await res.text()).slice(0, 300);

@@ -41,16 +41,18 @@
 
 ### 1단계: 함수 정리
 
-- [ ] **provider adapter**
+- [x] **provider adapter**
   - `illustrate-bottle`에서 모델을 호출하는 부분을 `providers/` 아래 `cloudflare.ts`와 `google.ts`로 분리합니다.
   - 공통 형태는 `generate({image, prompt}) → {png, model, costUsd}`입니다.
   - 사용할 provider는 환경변수 `ART_PROVIDER`로 고르고, 테마별로 따로 지정할 수도 있게 합니다(`ART_PROVIDER_<THEME>`).
-- [ ] **재시도**
+- [x] **재시도**
   - 429, 5xx, 타임아웃이 나면 지수 백오프로 최대 3회 다시 시도합니다(1초 → 3초 → 9초, 지터 포함).
   - 422(flagged)는 다시 시도하지 않습니다.
-- [ ] **classify 빈 이름 문제**
+- [x] **classify 빈 이름 문제** (프롬프트 보강 완료, 실제 사진으로 확인 필요)
   - 글렌리벳처럼 이름이 비어서 오는 경우가 있습니다. 응답의 `raw`를 보고 프롬프트를 손봅니다.
   - 그래도 비어 있으면 앱에서 "이름을 입력해주세요"로 처리합니다.
+
+- 테스트(비용 0, 실제 모델 호출 없음): `deno test -A supabase/functions/_tests`
 
 ### 2단계: 사용자 식별과 데이터베이스
 
