@@ -59,8 +59,8 @@ cp .env.example .env                                     # URL과 publishable �
 | 파일 | 만드는 방법 |
 |---|---|
 | `shelf.png` + `src/components/cabinet/shelf.json` | `python3 scripts/make-shelf.py [가로 배율] [원목 띠 배율]` — 진열장을 넓히고 칸 좌표를 함께 저장 |
-| `splash.png` | `python3 scripts/make-splash.py` — 실제 상표(라벨 글자·문장·목 메달)를 뭉갬 |
-| `paper.png`, `camera.png`, `cabinet.png` | `python3 scripts/make-ui-assets.py` |
+| `splash.png`, `paper.png`, `camera.png`, `cabinet.png`, 앱 아이콘(`assets/icon.png`, Android 적응형) | `python3 scripts/make-ui-assets.py` |
+| `assets/themes/<테마>.jpg` (테마 미리보기) | `python3 scripts/make-theme-assets.py` — 라벨 글자·문장을 뭉갬 |
 
 스플래시 문구는 `src/components/Intro.tsx`의 `INTRO_LINES`, 손글씨 글꼴은 `assets/fonts/SongleSongeulHeullim.ttf`(그리운X국한박 송글손글 감성 흘림체, 파일 수정 금지)다.
 

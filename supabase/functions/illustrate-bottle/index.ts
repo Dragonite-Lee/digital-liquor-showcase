@@ -1,4 +1,4 @@
-// 병 사진 → 테마별 그림(수채화·모네·고흐·현대회화). Supabase Edge Function (Deno).
+// 병 사진 → 테마별 그림(수채화·모네·고흐·크레용). Supabase Edge Function (Deno).
 // 배포: supabase functions deploy illustrate-bottle   (verify_jwt는 끄고 함수 안에서 사용자 토큰을 검증한다)
 // 모델 선택: providers/index.ts (기본 Cloudflare 경유 나노바나나, ART_PROVIDER=google로 직접 호출)
 import { requireUser } from '../_shared/auth.ts';

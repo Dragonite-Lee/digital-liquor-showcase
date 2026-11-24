@@ -1,4 +1,4 @@
-export type ThemeId = 'watercolor' | 'monet' | 'vangogh' | 'modern';
+export type ThemeId = 'watercolor' | 'monet' | 'vangogh' | 'crayon';
 
 export type Theme = {
   id: ThemeId;
@@ -39,12 +39,12 @@ export const THEMES: Theme[] = [
     productId: 'kr.dragonite.suljang.theme.vangogh',
   },
   {
-    id: 'modern',
-    label: '현대회화',
-    blurb: '오일 파스텔로 그린 귀여운 그림',
-    preview: require('../../assets/themes/modern.jpg'),
+    id: 'crayon',
+    label: '크레용',
+    blurb: '크레용으로 꾹꾹 눌러 그린 그림',
+    preview: require('../../assets/themes/crayon.jpg'),
     included: false,
-    productId: 'kr.dragonite.suljang.theme.modern',
+    productId: 'kr.dragonite.suljang.theme.crayon',
   },
 ];
 
@@ -53,5 +53,5 @@ export const ALL_THEMES_PRODUCT = 'kr.dragonite.suljang.theme.all';
 
 export const themeOf = (id: ThemeId | undefined) => THEMES.find((t) => t.id === id) ?? THEMES[0];
 
-/** 유료 테마를 처음 권하는 시점: 이만큼 담아 술장에 애착이 생긴 뒤 */
+/** 유료 테마를 처음 권하는 시점: 이만큼 담아 진열장에 애착이 생긴 뒤 */
 export const NUDGE_AFTER_BOTTLES = 3;

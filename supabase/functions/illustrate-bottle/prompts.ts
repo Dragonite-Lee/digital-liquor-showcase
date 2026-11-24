@@ -135,8 +135,8 @@ Final output
 - No additional objects or background decorations.
 
 The result should resemble a richly textured Van Gogh-inspired oil painting of the original bottle, with bold directional strokes, vivid contrasting colors, and a plain pure white background, ready to use as a standalone mobile app asset.`,
-  // 현대회화(오일 파스텔·크레용)
-  modern: `Transform the uploaded photograph of a bottle into a charming, hand-drawn oil pastel and wax crayon illustration, on a plain pure white background.
+  // 크레용(오일 파스텔·크레용)
+  crayon: `Transform the uploaded photograph of a bottle into a charming, hand-drawn oil pastel and wax crayon illustration, on a plain pure white background.
 
 Step 1 — Identify and isolate the bottle
 - Detect the bottle as the only subject in the uploaded photograph.

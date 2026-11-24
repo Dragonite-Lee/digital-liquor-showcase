@@ -30,7 +30,7 @@ const session = await signup.json();
 if (!session.access_token) throw new Error(`익명 로그인 실패 — 대시보드에서 Anonymous sign-ins를 켜 주세요: ${JSON.stringify(session).slice(0, 200)}`);
 
 const image = readFileSync('scripts/preview-bottle.jpg').toString('base64');
-const themes = process.argv.slice(2).length ? process.argv.slice(2) : ['watercolor', 'monet', 'vangogh', 'modern'];
+const themes = process.argv.slice(2).length ? process.argv.slice(2) : ['watercolor', 'monet', 'vangogh', 'crayon'];
 
 for (const theme of themes) {
   process.stdout.write(`${theme} … `);

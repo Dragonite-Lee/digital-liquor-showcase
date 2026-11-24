@@ -74,7 +74,7 @@
 
 - [ ] **App Store Connect**
   - 앱 본체는 유료(3,000원 안팎)로 두고, 수채화 테마는 기본으로 포함합니다.
-  - 인앱 상품: `kr.dragonite.suljang.theme.monet`, `.vangogh`, `.modern`, `.all`(비소모성)
+  - 인앱 상품: `kr.dragonite.suljang.theme.monet`, `.vangogh`, `.crayon`, `.all`(비소모성)
 - [ ] **구매 연동**
   - 앱: StoreKit 2 라이브러리(`expo-iap` 또는 RevenueCat)를 붙입니다. `purchases.ts`의 stub을 실제 구매와 복원으로 바꿉니다.
   - 서버: 구매가 끝나면 영수증을 서버에서 검증하고 `entitlements`에 기록합니다. RevenueCat을 쓰면 webhook으로 받습니다.

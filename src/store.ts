@@ -111,11 +111,15 @@ export const useCellar = create<State>()(
       }),
       merge: (saved, current) => {
         const kept = (saved ?? {}) as Partial<State>;
+        // '현대회화' 테마가 '크레용'으로 이름이 바뀌었다
+        const renamed = (id: string) => (id === 'modern' ? 'crayon' : id) as ThemeId;
         return {
           ...current,
           ...kept,
+          ownedThemes: (kept.ownedThemes ?? current.ownedThemes).map(renamed),
+          trialsUsed: (kept.trialsUsed ?? current.trialsUsed).map(renamed),
           // 자리 번호가 없던 예전 데이터에도 자리를 준다
-          bottles: withSlots(kept.bottles ?? []),
+          bottles: withSlots((kept.bottles ?? []).map((b) => (b.theme ? { ...b, theme: renamed(b.theme) } : b))),
         };
       },
     },
