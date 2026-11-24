@@ -93,7 +93,7 @@
 
 - [x] 유료 앱 계약, 은행 계좌
 - [ ] 유료 앱 계약 새 버전 동의, 세금 양식(W-8BEN) 활성 확인
-- [ ] App Store Small Business Program 가입 (수수료 30% → 15%)
+- [x] App Store Small Business Program 신청 (2026-11-24, 승인 메일 대기) — 승인되면 RevenueCat 앱 설정에도 가입일 입력
 - [ ] App Store Connect 앱 등록 → 가격 4,900원 → 인앱 상품 3개(비소모성, 1,900원)
   - `kr.dragonite.suljang.theme.monet` (인상주의)
   - `kr.dragonite.suljang.theme.vangogh` (유화)
