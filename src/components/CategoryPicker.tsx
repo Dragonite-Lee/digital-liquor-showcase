@@ -1,13 +1,14 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { BrushFrame } from '@/components/BrushFrame';
 import { CATEGORIES, type CategoryId } from '@/lib/categories';
 import { font, paper } from '@/theme';
 
-/** 주종 고르기 (피그마 "주종을 선택해 주세요"): 연필 테두리 알약, 고른 것은 흰 바탕 */
+/** 주종 고르기 (피그마 "주종을 선택해 주세요"): 붓 테두리 알약, 고른 것은 흰 바탕 */
 export function CategoryPicker({ value, onChange }: { value: CategoryId; onChange: (id: CategoryId) => void }) {
   return (
     <View style={styles.wrap} accessibilityRole="radiogroup" accessibilityLabel="술 종류">
-      {CATEGORIES.map((c) => {
+      {CATEGORIES.map((c, i) => {
         const on = c.id === value;
         return (
           <Pressable
@@ -18,6 +19,7 @@ export function CategoryPicker({ value, onChange }: { value: CategoryId; onChang
             hitSlop={4}
             style={({ pressed }) => [styles.chip, on ? styles.chipOn : styles.chipOff, pressed && styles.pressed]}
           >
+            <BrushFrame radius={14} seed={i + 11} />
             <Text style={styles.label}>{c.label}</Text>
           </Pressable>
         );
@@ -32,8 +34,6 @@ const styles = StyleSheet.create({
     height: 28,
     paddingHorizontal: 18,
     borderRadius: 16,
-    borderWidth: 2,
-    borderColor: paper.ink,
     alignItems: 'center',
     justifyContent: 'center',
   },

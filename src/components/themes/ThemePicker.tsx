@@ -1,6 +1,7 @@
 import { Image } from 'expo-image';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { BrushFrame } from '@/components/BrushFrame';
 import { isUnlocked } from '@/lib/purchases';
 import { THEMES, type ThemeId } from '@/lib/themes';
 import { useCellar } from '@/store';
@@ -25,7 +26,7 @@ export function ThemePicker({ value, busy, drawn = [], onSelect }: Props) {
 
   return (
     <View style={styles.row}>
-      {THEMES.map((t) => {
+      {THEMES.map((t, i) => {
         const open = isUnlocked(t.id, owned);
         const on = value === t.id;
         const note = drawn.includes(t.id) ? '그렸어요' : open ? null : trials.includes(t.id) ? '열기' : '한 번 무료';
@@ -38,6 +39,7 @@ export function ThemePicker({ value, busy, drawn = [], onSelect }: Props) {
             accessibilityLabel={`${t.label} 테마${note ? `, ${note}` : ''}`}
             style={({ pressed }) => [styles.card, on ? styles.cardOn : styles.cardOff, pressed && styles.pressed]}
           >
+            <BrushFrame radius={12} seed={i + 1} />
             <View style={styles.thumb}>
               {/* 미리보기는 3:4 그림의 위쪽(병 머리)이 원 안에 오게 */}
               <Image source={t.preview} style={styles.thumbImage} contentFit="cover" />
@@ -67,8 +69,6 @@ const styles = StyleSheet.create({
     gap: 8,
     alignItems: 'center',
     borderRadius: 12,
-    borderWidth: 2,
-    borderColor: paper.ink,
   },
   cardOn: { backgroundColor: 'rgba(255,255,255,0.5)' },
   cardOff: { opacity: 0.8 },

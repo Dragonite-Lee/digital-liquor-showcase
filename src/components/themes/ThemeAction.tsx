@@ -1,6 +1,7 @@
 import { Image } from 'expo-image';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { BrushFrame } from '@/components/BrushFrame';
 import { SmallText } from '@/components/bottle/parts';
 import { themeOf, type ThemeId, withRo } from '@/lib/themes';
 import { font, paper } from '@/theme';
@@ -36,6 +37,7 @@ export function ThemeAction({ theme, drawn, painting, error, limitHit, onDraw }:
               accessibilityRole="button"
               style={({ pressed }) => [styles.draw, pressed && styles.pressed]}
             >
+              <BrushFrame radius={12} seed={31} />
               <Text style={styles.drawLabel}>{withRo(t.label)} 그리기</Text>
             </Pressable>
           </View>
@@ -60,8 +62,6 @@ const styles = StyleSheet.create({
   draw: {
     height: 42,
     borderRadius: 12,
-    borderWidth: 2,
-    borderColor: paper.ink,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.5)',
