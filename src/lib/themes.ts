@@ -48,8 +48,6 @@ export const THEMES: Theme[] = [
   },
 ];
 
-/** 세 테마를 한 번에 여는 묶음 상품 */
-export const ALL_THEMES_PRODUCT = 'kr.dragonite.suljang.theme.all';
 
 export const themeOf = (id: ThemeId | undefined) => THEMES.find((t) => t.id === id) ?? THEMES[0];
 

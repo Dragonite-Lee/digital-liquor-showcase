@@ -77,21 +77,41 @@
 - [x] 앱 안 계정 삭제 (`delete-account` 함수, 심사 요구사항 5.1.1(v))
 - [ ] Supabase·Google Cloud 설정 (README "로그인")
 
-### 3단계: 결제
+### 3단계: 결제 (RevenueCat)
 
-- [ ] **App Store Connect**
-  - 앱 본체는 유료(3,000원 안팎)로 두고, 수채화 테마는 기본으로 포함합니다.
-  - 인앱 상품: `kr.dragonite.suljang.theme.monet`, `.vangogh`, `.crayon`, `.all`(비소모성)
-- [ ] **구매 연동**
-  - 앱: StoreKit 2 라이브러리(`expo-iap` 또는 RevenueCat)를 붙입니다. `purchases.ts`의 stub을 실제 구매와 복원으로 바꿉니다.
-  - 서버: 구매가 끝나면 영수증을 서버에서 검증하고 `entitlements`에 기록합니다. RevenueCat을 쓰면 webhook으로 받습니다.
-- [ ] **권한 기준을 서버로**
-  - 테마를 열 수 있는지는 `entitlements`를 기준으로 판단합니다.
-  - 기기에 저장한 값은 화면 표시용 캐시로만 씁니다.
-- [ ] **무료 체험**
-  - 테마마다 1회 무료 체험이 있습니다. 서버에서 `art_jobs` 기록으로 확인합니다(같은 사용자, 같은 테마, done 1건).
-- [ ] **사업자와 정산**
-  - 앱스토어 유료 앱 계약에 사업자 정보와 세금 정보를 등록합니다(개인사업자 '준랩').
+**확정한 것**
+
+| 항목 | 내용 |
+|---|---|
+| 앱 본체 | 유료 앱 **4,900원**. 수채화 테마 포함 |
+| 테마 | 인상주의·유화·크레용 각각 **1,900원**, 비소모성(한 번 사면 계속) |
+| 묶음 상품 | 만들지 않음 (나중에 필요하면 추가) |
+| 무료 체험 | 테마마다 1회 |
+| 결제 방식 | RevenueCat (`react-native-purchases`) |
+
+**준비 (이준영)**
+
+- [x] 유료 앱 계약, 은행 계좌
+- [ ] 유료 앱 계약 새 버전 동의, 세금 양식(W-8BEN) 활성 확인
+- [ ] App Store Small Business Program 가입 (수수료 30% → 15%)
+- [ ] App Store Connect 앱 등록 → 가격 4,900원 → 인앱 상품 3개(비소모성, 1,900원)
+  - `kr.dragonite.suljang.theme.monet` (인상주의)
+  - `kr.dragonite.suljang.theme.vangogh` (유화)
+  - `kr.dragonite.suljang.theme.crayon` (크레용)
+- [ ] App Store Connect → 사용자 및 액세스 → 통합 → **인앱 구입 키**(.p8) 발급 → RevenueCat에 등록
+- [ ] RevenueCat 가입 → 프로젝트·iOS 앱 추가 → 상품 3개 연결 → 엔타이틀먼트 3개(`monet`, `vangogh`, `crayon`)
+- [ ] 샌드박스 테스터 계정 만들기 (App Store Connect → 사용자 및 액세스 → 샌드박스)
+
+**코드 (Claude)**
+
+- [ ] `react-native-purchases` 설치 (네이티브 모듈이라 다시 빌드 필요)
+- [ ] 앱 시작 시 `Purchases.configure`, 사용자 id는 Supabase 사용자 id로 (`logIn`) → 기기를 바꿔도 같은 구매
+- [ ] `purchases.ts`의 자리 코드를 실제 구매·복원으로 교체, 가격은 스토어가 주는 현지 가격 표시
+- [ ] RevenueCat **webhook** → Supabase 함수 `revenuecat-webhook` → `entitlements`에 기록 (`NON_RENEWING_PURCHASE`, 거래 id로 중복 방지)
+- [ ] 테마 권한은 서버 `entitlements` 기준, 기기 값은 표시용 캐시
+- [ ] 무료 체험 1회를 서버에서 확인 (`art_jobs`)
+- [ ] 테마 결제 창 디자인 교체 (시안 받은 뒤)
+- [ ] 구매 복원 버튼 (심사 필수)
 
 ### 4단계: 작업 큐
 
@@ -169,7 +189,9 @@
 | 그림 1장 (나노바나나, Cloudflare 경유) | 약 $0.039 + 5% |
 | 분류 1회 (Claude Haiku) | 수 원 |
 | 병 1개 합계 | 약 65원 |
-| 앱 판매 3,000원의 실수령 (수수료 15% 제외) | 약 2,550원, 약 39병분 |
+| 앱 4,900원 실수령 (부가세 10%·수수료 15% 제외, 대략) | 약 3,790원 → 약 58병분 |
+| 테마 1,900원 실수령 (같은 기준, 대략) | 약 1,470원 → 그림 약 22장분 |
+| RevenueCat | 월 추적 매출 $2,500까지 무료, 넘는 달만 1% |
 
 유료 테마는 그림을 새로 그릴 때마다 비용이 드니, 일일 한도와 다시 그리기 제한을 반드시 둡니다.
 

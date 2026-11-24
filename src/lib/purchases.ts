@@ -2,29 +2,28 @@ import { Alert } from 'react-native';
 
 import { useCellar } from '@/store';
 
-import { ALL_THEMES_PRODUCT, THEMES, type ThemeId } from './themes';
+import { THEMES, type ThemeId } from './themes';
 
 /**
  * 테마 인앱 결제.
  *
  * 지금은 화면 흐름을 확인하기 위한 자리만 있다. 개발 빌드에서는 누르면 바로 열리고,
- * 배포 빌드에서는 "준비 중"을 띄운다. StoreKit 연결(App Store Connect에 비소모성 상품 4개 등록 후
- * expo-iap 또는 RevenueCat)은 다음 단계에서 이 파일 안만 바꾸면 된다.
+ * 배포 빌드에서는 "준비 중"을 띄운다. 3단계에서 RevenueCat(react-native-purchases)으로
+ * 이 파일 안만 바꾼다. 상품: 테마마다 비소모성 1개 (묶음 상품은 만들지 않는다).
  */
 
-/** 화면에 보여 줄 가격. StoreKit을 붙이면 스토어가 주는 현지 가격으로 바뀐다. */
-export const PRICE = { theme: '2,200원', all: '4,400원' } as const;
+/** 화면에 보여 줄 가격. 결제를 붙이면 스토어가 주는 현지 가격으로 바뀐다. (앱 본체 4,900원은 스토어 판매가) */
+export const PRICE = { app: '4,900원', theme: '1,900원' } as const;
 
 export const isUnlocked = (id: ThemeId, owned: ThemeId[]) =>
   THEMES.find((t) => t.id === id)?.included || owned.includes(id);
 
-/** 테마 하나 또는 묶음을 산다. 성공하면 true. */
-export async function buyThemes(target: ThemeId | 'all'): Promise<boolean> {
-  const ids = target === 'all' ? THEMES.filter((t) => !t.included).map((t) => t.id) : [target];
-  const productId = target === 'all' ? ALL_THEMES_PRODUCT : THEMES.find((t) => t.id === target)?.productId;
+/** 테마 하나를 산다. 성공하면 true. */
+export async function buyTheme(id: ThemeId): Promise<boolean> {
+  const productId = THEMES.find((t) => t.id === id)?.productId;
 
   if (__DEV__) {
-    useCellar.getState().unlockThemes(ids);
+    useCellar.getState().unlockThemes([id]);
     return true;
   }
   Alert.alert('곧 열려요', `결제 연결을 준비하고 있어요. (${productId})`);

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { buyThemes, PRICE } from '@/lib/purchases';
+import { buyTheme, PRICE } from '@/lib/purchases';
 import { themeOf, type ThemeId } from '@/lib/themes';
 import { useCellar } from '@/store';
 import { color, font, space } from '@/theme';
@@ -20,18 +20,18 @@ export function ThemeSheet({ theme, onClose, onReady }: Props) {
   const insets = useSafeAreaInsets();
   const trials = useCellar((s) => s.trialsUsed);
   const spendTrial = useCellar((s) => s.spendTrial);
-  const [buying, setBuying] = useState<'one' | 'all' | null>(null);
+  const [buying, setBuying] = useState(false);
 
   if (!theme) return null;
   const t = themeOf(theme);
   const canTry = !trials.includes(theme);
 
-  const buy = async (target: 'one' | 'all') => {
-    setBuying(target);
+  const buy = async () => {
+    setBuying(true);
     try {
-      if (await buyThemes(target === 'all' ? 'all' : theme)) onReady(theme);
+      if (await buyTheme(theme)) onReady(theme);
     } finally {
-      setBuying(null);
+      setBuying(false);
     }
   };
 
@@ -60,29 +60,17 @@ export function ThemeSheet({ theme, onClose, onReady }: Props) {
           </Pressable>
         )}
         <Pressable
-          onPress={() => buy('one')}
-          disabled={!!buying}
+          onPress={buy}
+          disabled={buying}
           accessibilityRole="button"
           style={({ pressed }) => [canTry ? styles.secondary : styles.primary, pressed && styles.pressed]}
         >
-          {buying === 'one' ? (
+          {buying ? (
             <ActivityIndicator color={canTry ? color.glow : color.labelInk} />
           ) : (
             <Text style={canTry ? styles.secondaryLabel : styles.primaryLabel}>
               {t.label} 열기 · {PRICE.theme}
             </Text>
-          )}
-        </Pressable>
-        <Pressable
-          onPress={() => buy('all')}
-          disabled={!!buying}
-          accessibilityRole="button"
-          style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}
-        >
-          {buying === 'all' ? (
-            <ActivityIndicator color={color.glow} />
-          ) : (
-            <Text style={styles.secondaryLabel}>인상주의·유화·크레용 모두 열기 · {PRICE.all}</Text>
           )}
         </Pressable>
         <Pressable onPress={onClose} accessibilityRole="button" style={styles.later}>
