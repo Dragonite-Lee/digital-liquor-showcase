@@ -106,7 +106,7 @@ export default function Home() {
           accessibilityLiveRegion="polite"
         >
           <Text style={styles.toastText} numberOfLines={1}>
-            {added.name ? `${added.name}, 술장에 담았어요` : '술장에 담았어요'}
+            {added.name ? `${added.name}, 진열장에 담았어요` : '진열장에 담았어요'}
           </Text>
         </Animated.View>
       )}

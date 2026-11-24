@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "술장",
+    "name": "호가술병",
     "slug": "digital-liquor-showcase",
     "scheme": "suljang",
     "version": "0.1.0",
@@ -40,14 +40,14 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "술병을 촬영해 술장에 담으려면 카메라가 필요해요.",
+          "cameraPermission": "술병을 촬영해 진열장에 담으려면 카메라가 필요해요.",
           "recordAudioAndroid": false
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "앨범에 있는 술병 사진을 술장에 담을 수 있어요."
+          "photosPermission": "앨범에 있는 술병 사진을 진열장에 담을 수 있어요."
         }
       ],
       [

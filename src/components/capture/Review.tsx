@@ -125,7 +125,7 @@ export function Review({ capture, cut, onSaved }: { capture: Capture; cut: Cut; 
             accessibilityRole="button"
             style={({ pressed }) => [styles.primary, pressed && styles.pressed]}
           >
-            <Text style={styles.primaryLabel}>술장에 담기</Text>
+            <Text style={styles.primaryLabel}>진열장에 담기</Text>
           </Pressable>
         </View>
       </ScrollView>

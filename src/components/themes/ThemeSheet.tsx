@@ -50,7 +50,7 @@ export function ThemeSheet({ theme, onClose, onReady }: Props) {
           <View style={styles.copy}>
             <Text style={styles.title}>{t.label}</Text>
             <Text style={styles.blurb}>{t.blurb}</Text>
-            <Text style={styles.body}>찍은 병을 이 화풍으로 그려 술장에 담아요. 한 번 사면 계속 쓸 수 있어요.</Text>
+            <Text style={styles.body}>찍은 병을 이 화풍으로 그려 진열장에 담아요. 한 번 사면 계속 쓸 수 있어요.</Text>
           </View>
         </View>
 

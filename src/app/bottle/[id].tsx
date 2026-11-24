@@ -37,7 +37,7 @@ export default function BottleDetail() {
   if (!bottle) {
     return (
       <View style={[styles.screen, styles.gone]}>
-        <Text style={styles.date}>술장에서 뺀 병이에요.</Text>
+        <Text style={styles.date}>진열장에서 뺀 병이에요.</Text>
       </View>
     );
   }
@@ -78,9 +78,9 @@ export default function BottleDetail() {
       remove(bottle.id);
     };
     if (Platform.OS === 'web') return go();
-    Alert.alert('술장에서 뺄까요?', '사진과 메모가 함께 지워져요.', [
+    Alert.alert('진열장에서 뺄까요?', '사진과 메모가 함께 지워져요.', [
       { text: '그대로 두기', style: 'cancel' },
-      { text: '술장에서 빼기', style: 'destructive', onPress: go },
+      { text: '진열장에서 빼기', style: 'destructive', onPress: go },
     ]);
   };
 
@@ -94,7 +94,7 @@ export default function BottleDetail() {
           <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="닫기" hitSlop={12}>
             <Ionicons name="close" size={26} color={color.label} />
           </Pressable>
-          <Pressable onPress={confirmRemove} accessibilityRole="button" accessibilityLabel="술장에서 빼기" hitSlop={12}>
+          <Pressable onPress={confirmRemove} accessibilityRole="button" accessibilityLabel="진열장에서 빼기" hitSlop={12}>
             <Ionicons name="trash-outline" size={22} color={color.mist} />
           </Pressable>
         </View>
