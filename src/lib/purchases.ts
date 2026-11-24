@@ -12,8 +12,8 @@ import { THEMES, type ThemeId } from './themes';
  * 이 파일 안만 바꾼다. 상품: 테마마다 비소모성 1개 (묶음 상품은 만들지 않는다).
  */
 
-/** 화면에 보여 줄 가격. 결제를 붙이면 스토어가 주는 현지 가격으로 바뀐다. (앱 본체 4,900원은 스토어 판매가) */
-export const PRICE = { app: '4,900원', theme: '1,900원' } as const;
+/** 화면에 보여 줄 가격. 결제를 붙이면 스토어가 주는 현지 가격으로 바뀐다. (앱 본체 5,500원은 스토어 판매가) */
+export const PRICE = { app: '5,500원', theme: '1,900원' } as const;
 
 export const isUnlocked = (id: ThemeId, owned: ThemeId[]) =>
   THEMES.find((t) => t.id === id)?.included || owned.includes(id);
