@@ -48,7 +48,8 @@
         "expo-camera",
         {
           "cameraPermission": "술병을 촬영해 진열장에 담으려면 카메라가 필요해요.",
-          "recordAudioAndroid": false
+          "recordAudioAndroid": false,
+          "microphonePermission": false
         }
       ],
       [
