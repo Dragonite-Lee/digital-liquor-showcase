@@ -7,6 +7,7 @@ import { type ComponentRef, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, PixelRatio, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
+import { HandIcon } from '@/components/HandIcon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { captureRef } from 'react-native-view-shot';
 
@@ -99,7 +100,7 @@ export default function Cabinet() {
             hitSlop={12}
             style={styles.back}
           >
-            <Ionicons name="chevron-back" size={24} color={paper.ink} />
+            <HandIcon name="back" size={30} />
           </Pressable>
           <Text style={styles.title}>진열장</Text>
           {Platform.OS === 'web' || bottles.length === 0 ? (
@@ -116,7 +117,7 @@ export default function Cabinet() {
               {sharing ? (
                 <ActivityIndicator color={paper.ink} />
               ) : (
-                <Ionicons name="share-outline" size={21} color={moving ? paper.line : paper.ink} />
+                <HandIcon name="share" size={30} dim={!!moving} />
               )}
             </Pressable>
           )}

@@ -6,6 +6,7 @@ import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useRef } from 'react';
 import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { HandIcon } from '@/components/HandIcon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Review } from '@/components/capture/Review';
@@ -50,7 +51,7 @@ export default function Capture() {
       hitSlop={12}
       style={[styles.close, { top: insets.top + space.s }]}
     >
-      <Ionicons name="close" size={28} color={color.label} />
+      <HandIcon name="close" size={30} tint={color.label} />
     </Pressable>
   );
 

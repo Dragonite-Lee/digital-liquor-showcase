@@ -2,14 +2,14 @@ import type { Bottle } from '@/store';
 
 import shelf from './shelf.json';
 
-// 장 한 채 = 수채화 진열장 그림 한 장(assets/ui/shelf.png). 3칸 × 4단, 병이 늘면 같은 장이 옆으로 이어진다.
+// 장 한 채 = 수채화 진열장 그림 한 장(assets/ui/shelf.png). 3칸 × 3단, 병이 늘면 같은 장이 옆으로 이어진다.
 // 칸 좌표는 scripts/make-shelf.py가 그림과 함께 만든 shelf.json에서 온다.
 export const COLS = 3;
 export const ROWS = shelf.bays.length;
 export const PER_UNIT = COLS * ROWS;
 
 /** 그림 px → 방 좌표. 방 전체는 화면 높이에 맞춰 다시 확대·축소된다. */
-export const SCALE = 0.62;
+export const SCALE = 0.785;
 const s = (v: number) => v * SCALE;
 
 export const IMG_W = s(shelf.width);

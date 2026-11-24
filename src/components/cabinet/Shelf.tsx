@@ -3,12 +3,11 @@ import { memo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { BottleImage } from '@/components/BottleImage';
-import { MemoSlip } from '@/components/MemoSlip';
-import { seeded } from '@/lib/seeded';
 import type { Bottle } from '@/store';
 
 import { BOTTLE, type Cell, SLOT } from './layout';
 import { useMove } from './MoveContext';
+import { NamePlate } from './NamePlate';
 
 type Bay = { top: number; floor: number; lipTop: number; lipH: number };
 
@@ -55,7 +54,7 @@ function Slot({ cell }: { cell: Cell }) {
   );
 }
 
-/** 진열장 한 단: 유리 선반 위 병 3개 + 그 아래 원목 띠에 붙인 메모지 */
+/** 진열장 한 단: 유리 선반 위 병 3개 + 그 아래 원목 띠에 붙인 놋쇠 명패 */
 export const Shelf = memo(function Shelf({ cells, bay, left, width }: { cells: Cell[]; bay: Bay; left: number; width: number }) {
   return (
     <>
@@ -67,7 +66,7 @@ export const Shelf = memo(function Shelf({ cells, bay, left, width }: { cells: C
       <View style={[styles.lip, { left, width, top: bay.lipTop, height: bay.lipH }]} pointerEvents="none">
         {cells.map(({ slot, bottle }) => (
           <View key={slot} style={styles.memoSlot}>
-            {bottle ? <MemoSlip name={bottle.name} memo={bottle.memo} tilt={(seeded(bottle.id, 5) - 0.5) * 4} /> : null}
+            {bottle ? <NamePlate name={bottle.name} width={SLOT * 0.8} /> : null}
           </View>
         ))}
       </View>
@@ -101,5 +100,5 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.3)',
   },
   lip: { position: 'absolute', flexDirection: 'row', alignItems: 'center' },
-  memoSlot: { width: SLOT, paddingHorizontal: SLOT * 0.12 },
+  memoSlot: { width: SLOT, alignItems: 'center' },
 });

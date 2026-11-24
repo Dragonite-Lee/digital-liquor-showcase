@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { useEffect, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown, FadeOut } from 'react-native-reanimated';
+import { HandIcon } from '@/components/HandIcon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FilterChips } from '@/components/FilterChips';
@@ -137,7 +138,7 @@ export default function Home() {
             </View>
           </Pressable>
           <Pressable onPress={markNudged} accessibilityRole="button" accessibilityLabel="권유 닫기" hitSlop={10}>
-            <Ionicons name="close" size={18} color={color.labelInk} />
+            <HandIcon name="close" size={20} />
           </Pressable>
         </Animated.View>
       )}

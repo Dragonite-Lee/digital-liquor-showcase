@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { HandIcon } from '@/components/HandIcon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CategoryPicker } from '@/components/CategoryPicker';
@@ -92,7 +93,7 @@ export default function BottleDetail() {
       >
         <View style={styles.bar}>
           <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="닫기" hitSlop={12}>
-            <Ionicons name="close" size={26} color={color.label} />
+            <HandIcon name="close" size={28} tint={color.label} />
           </Pressable>
           <Pressable onPress={confirmRemove} accessibilityRole="button" accessibilityLabel="진열장에서 빼기" hitSlop={12}>
             <Ionicons name="trash-outline" size={22} color={color.mist} />

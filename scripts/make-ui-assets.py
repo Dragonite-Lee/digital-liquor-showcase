@@ -74,4 +74,6 @@ if __name__ == '__main__':
     Image.open(SRC / 'splash.png').save(OUT / 'splash.png', optimize=True)
     icon('camera-button.png', 'camera.png')
     icon('cabinet-icon.png', 'cabinet.png')
+    for name in ('badge', 'icon-close', 'icon-share', 'icon-back'):
+        Image.open(SRC / f'{name}.png').save(OUT / f'{name}.png', optimize=True)
     app_icon()
