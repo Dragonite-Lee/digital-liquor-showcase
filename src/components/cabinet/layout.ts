@@ -2,7 +2,7 @@ import type { Bottle } from '@/store';
 
 import shelf from './shelf.json';
 
-// 장 한 채 = 수채화 진열장 그림 한 장(assets/ui/shelf.png). 3칸 × 5단, 병이 늘면 같은 장이 옆으로 이어진다.
+// 장 한 채 = 수채화 진열장 그림 한 장(assets/ui/shelf.png). 3칸 × 4단, 병이 늘면 같은 장이 옆으로 이어진다.
 // 칸 좌표는 scripts/make-shelf.py가 그림과 함께 만든 shelf.json에서 온다.
 export const COLS = 3;
 export const ROWS = shelf.bays.length;
@@ -28,15 +28,15 @@ export const BAYS = shelf.bays.map((b) => ({
   lipH: s(b.lip[1] - b.lip[0]),
 }));
 export const INNER_LEFT = INNER_L;
-/** 병 높이: 칸 높이의 78% */
-export const BOTTLE = Math.min(...BAYS.map((b) => b.floor - b.top)) * 0.78;
+/** 병 높이: 칸 높이의 84% */
+export const BOTTLE = Math.min(...BAYS.map((b) => b.floor - b.top)) * 0.84;
 
 export const GAP = 36; // 이웃한 장 기둥 사이
-export const ENTRY = 60; // 첫 장 앞 벽
+export const ENTRY = 36; // 첫 장 앞 벽
 export const TAIL = 60;
 export const ROOM_H = IMG_H + 24;
 /** 처음 화면에 들어오게 할 너비: 첫 장 전체 + 다음 장이 조금 */
-export const FIT_WIDTH = ENTRY + FRAME_W + GAP + 70;
+export const FIT_WIDTH = ENTRY + FRAME_W + GAP + 28;
 
 // 그림 양옆의 투명한 빛 번짐은 이웃 장과 겹쳐도 된다. 자리는 기둥 기준으로 잡는다.
 export const unitLeft = (index: number) => ENTRY - FRAME_L + index * (FRAME_W + GAP);

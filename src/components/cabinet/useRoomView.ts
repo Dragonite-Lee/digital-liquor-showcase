@@ -29,7 +29,7 @@ export function useRoomView(roomW: number) {
   const tx = useSharedValue(0);
   const ty = useSharedValue(0);
 
-  // 방이 화면보다 작으면 가로는 가운데·세로는 위에 붙이고, 크면 가장자리 밖으로 밀려나지 않게
+  // 방이 화면보다 작으면 가로는 가운데·세로는 바닥에 붙이고, 크면 가장자리 밖으로 밀려나지 않게
   const boundX = (x: number, z: number) => {
     'worklet';
     const w = roomW * fit * z;
@@ -38,7 +38,7 @@ export function useRoomView(roomW: number) {
   const boundY = (y: number, z: number) => {
     'worklet';
     const h = ROOM_H * fit * z;
-    return h <= viewH ? 0 : Math.min(0, Math.max(viewH - h, y));
+    return h <= viewH ? viewH - h : Math.min(0, Math.max(viewH - h, y));
   };
   const stop = () => {
     'worklet';
