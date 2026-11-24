@@ -143,7 +143,7 @@ export default function Home() {
         </Animated.View>
       )}
 
-      <View style={[styles.dock, { paddingBottom: insets.bottom + space.s }]} pointerEvents="box-none">
+      <View style={[styles.dock, { paddingBottom: insets.bottom + 24 }]} pointerEvents="box-none">
         <Pressable
           onPress={() => router.push('/cabinet')}
           accessibilityRole="button"
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: paper.bg },
   head: { alignItems: 'center', justifyContent: 'center', paddingTop: space.m, paddingBottom: space.xs },
   account: { position: 'absolute', right: space.l, top: space.m - 2 },
-  title: { fontFamily: font.hand, fontSize: 22, color: paper.ink, letterSpacing: 1 },
+  title: { fontFamily: font.hand, fontSize: 18, color: paper.ink },
   empty: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.xl },
   emptyBody: { fontFamily: font.hand, fontSize: 16, lineHeight: 23, color: paper.ink, textAlign: 'center' },
   dev: {
@@ -229,13 +229,13 @@ const styles = StyleSheet.create({
     bottom: 0,
     paddingHorizontal: space.l,
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     justifyContent: 'space-between',
   },
-  side: { width: 72, alignItems: 'center', gap: 2, paddingBottom: 6 },
-  cabinetIcon: { width: 44, height: 32 },
-  sideLabel: { fontFamily: font.hand, fontSize: 14, color: paper.ink },
-  shutter: { width: 78, height: 78, alignItems: 'center', justifyContent: 'center' },
-  shutterArt: { width: 78, height: 78 },
+  side: { width: 72, alignItems: 'center' },
+  cabinetIcon: { width: 48, height: 48, marginBottom: -4 },
+  sideLabel: { fontFamily: font.hand, fontSize: 16, color: paper.ink },
+  shutter: { width: 72, height: 72, alignItems: 'center', justifyContent: 'center' },
+  shutterArt: { width: 72, height: 72 },
   pressed: { opacity: 0.6 },
 });

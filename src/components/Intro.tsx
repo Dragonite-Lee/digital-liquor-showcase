@@ -110,7 +110,7 @@ export function Intro({ onDone }: { onDone: () => void }) {
 const styles = StyleSheet.create({
   screen: { backgroundColor: paper.bg, zIndex: 100 },
   words: { position: 'absolute', left: 0, right: 0, alignItems: 'center', gap: 2 },
-  line: { fontFamily: font.hand, fontSize: 38, lineHeight: 50, color: paper.ink, textAlign: 'left' },
+  line: { fontFamily: font.hand, fontSize: 40, lineHeight: 52, color: paper.ink, textAlign: 'left' },
   ghost: { opacity: 0 },
   inked: { flexShrink: 0 },
   clip: { position: 'absolute', top: 0, left: 0, bottom: 0, overflow: 'hidden' },

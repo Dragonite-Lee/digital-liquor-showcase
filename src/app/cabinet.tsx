@@ -2,14 +2,12 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import * as Sharing from 'expo-sharing';
-import { type ComponentRef, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, PixelRatio, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
 import { HandIcon } from '@/components/HandIcon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { captureRef } from 'react-native-view-shot';
 
 import { arrange, ROOM_H, roomWidth, unitLeft } from '@/components/cabinet/layout';
 import { MoveContext } from '@/components/cabinet/MoveContext';
@@ -61,33 +59,6 @@ export default function Cabinet() {
     [heldId, filtered, moveTo],
   );
 
-  const roomRef = useRef<ComponentRef<typeof View>>(null);
-  const [sharing, setSharing] = useState(false);
-  const [shareError, setShareError] = useState(false);
-
-  /** 진열장 전체(화면 밖으로 이어진 장까지)를 한 장의 이미지로 만들어 공유 시트를 연다. */
-  const share = async () => {
-    if (sharing || !roomRef.current) return;
-    setSharing(true);
-    setShareError(false);
-    try {
-      // 장이 길어도 가로 4096px을 넘지 않게 줄인다
-      const shrink = Math.min(1, 4096 / (roomW * PixelRatio.get()));
-      const uri = await captureRef(roomRef, {
-        format: 'png',
-        result: 'tmpfile',
-        width: roomW * shrink,
-        height: ROOM_H * shrink,
-      });
-      await Sharing.shareAsync(uri, { mimeType: 'image/png', UTI: 'public.png', dialogTitle: '나의 진열장' });
-    } catch {
-      setShareError(true);
-    } finally {
-      setSharing(false);
-    }
-  };
-
-
   return (
     <View style={styles.screen}>
       <Image source={PAPER} style={StyleSheet.absoluteFill} contentFit="cover" />
@@ -100,27 +71,10 @@ export default function Cabinet() {
             hitSlop={12}
             style={styles.back}
           >
-            <HandIcon name="back" size={30} />
+            <HandIcon name="back" size={23} />
           </Pressable>
           <Text style={styles.title}>진열장</Text>
-          {Platform.OS === 'web' || bottles.length === 0 ? (
-            <View style={styles.back} />
-          ) : (
-            <Pressable
-              onPress={share}
-              disabled={sharing || !!moving}
-              accessibilityRole="button"
-              accessibilityLabel="진열장을 이미지로 저장하거나 공유하기"
-              hitSlop={12}
-              style={styles.back}
-            >
-              {sharing ? (
-                <ActivityIndicator color={paper.ink} />
-              ) : (
-                <HandIcon name="share" size={30} dim={!!moving} />
-              )}
-            </Pressable>
-          )}
+          <View style={styles.back} />
         </View>
         <FilterChips />
       </View>
@@ -128,8 +82,8 @@ export default function Cabinet() {
       <GestureDetector gesture={view.gesture}>
         <View style={styles.viewport} onLayout={view.onLayout}>
           {view.ready && (
-            <Animated.View ref={roomRef} collapsable={false} style={[styles.room, { width: roomW }, view.roomStyle]}>
-              {/* 공유 이미지에도 종이 배경이 들어가도록 방 안에 한 번 더 깐다 */}
+            <Animated.View style={[styles.room, { width: roomW }, view.roomStyle]}>
+              {/* 확대·이동해도 종이가 이어지도록 방 안에도 깐다 */}
               <Image source={PAPER} style={StyleSheet.absoluteFill} contentFit="cover" />
 
               <MoveContext.Provider value={move}>
@@ -160,12 +114,6 @@ export default function Cabinet() {
             </View>
           )}
 
-          {shareError && (
-            <Text style={[styles.hint, styles.error, { bottom: insets.bottom + space.l }]}>
-              이미지를 만들지 못했어요. 다시 눌러 주세요.
-            </Text>
-          )}
-
           {bottles.length === 0 && (
             <Text style={[styles.hint, { bottom: insets.bottom + space.l }]}>병을 찍어 담으면 선반에 차례로 놓여요.</Text>
           )}
@@ -179,7 +127,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: paper.bg },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: space.s },
   back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  title: { fontFamily: font.hand, fontSize: 22, color: paper.ink, letterSpacing: 1 },
+  title: { fontFamily: font.hand, fontSize: 18, color: paper.ink },
   unitSpot: { position: 'absolute', top: 0 },
   viewport: { flex: 1, overflow: 'hidden' },
   room: { position: 'absolute', left: 0, top: 0, height: ROOM_H, transformOrigin: 'left top', overflow: 'hidden' },
@@ -211,6 +159,5 @@ const styles = StyleSheet.create({
   },
   moveText: { flex: 1, fontFamily: font.serif, fontSize: 13.5, lineHeight: 19, color: color.labelInk },
   moveCancel: { fontFamily: font.serifBold, fontSize: 13.5, color: color.wine },
-  error: { color: color.wine },
   hint: { position: 'absolute', alignSelf: 'center', fontFamily: font.hand, fontSize: 16, color: paper.inkSoft },
 });

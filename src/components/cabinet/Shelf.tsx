@@ -66,7 +66,7 @@ export const Shelf = memo(function Shelf({ cells, bay, left, width }: { cells: C
       <View style={[styles.lip, { left, width, top: bay.lipTop, height: bay.lipH }]} pointerEvents="none">
         {cells.map(({ slot, bottle }) => (
           <View key={slot} style={styles.memoSlot}>
-            {bottle ? <NamePlate name={bottle.name} width={SLOT * 0.8} /> : null}
+            {bottle ? <NamePlate name={bottle.name} width={SLOT * 1.12} /> : null}
           </View>
         ))}
       </View>
@@ -100,5 +100,5 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.3)',
   },
   lip: { position: 'absolute', flexDirection: 'row', alignItems: 'center' },
-  memoSlot: { width: SLOT, alignItems: 'center' },
+  memoSlot: { width: SLOT, alignItems: 'center', overflow: 'visible' },
 });

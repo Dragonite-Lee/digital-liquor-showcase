@@ -14,7 +14,7 @@ export const NamePlate = memo(function NamePlate({ name, width }: { name: string
     <View style={[styles.plate, { width, height }]}>
       <Image source={BADGE} style={StyleSheet.absoluteFill} contentFit="fill" />
       <Text
-        style={[styles.name, { fontSize: Math.max(8, height * 0.36), paddingHorizontal: width * 0.1 }]}
+        style={[styles.name, { fontSize: Math.max(8, height * 0.65), paddingHorizontal: width * 0.12 }]}
         numberOfLines={1}
         adjustsFontSizeToFit
         minimumFontScale={0.7}
@@ -27,13 +27,6 @@ export const NamePlate = memo(function NamePlate({ name, width }: { name: string
 
 const styles = StyleSheet.create({
   plate: { alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 3px rgba(60,30,10,0.3)', borderRadius: 4 },
-  // 놋쇠에 새긴 글씨: 어두운 갈색 + 아래쪽 밝은 하이라이트
-  name: {
-    fontFamily: font.serifBold,
-    color: '#4A2E14',
-    textAlign: 'center',
-    textShadowColor: 'rgba(255,236,200,0.7)',
-    textShadowOffset: { width: 0, height: 0.6 },
-    textShadowRadius: 0,
-  },
+  // 피그마: 손글씨 검정
+  name: { fontFamily: font.hand, color: '#000', textAlign: 'center' },
 });
