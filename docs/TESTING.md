@@ -19,16 +19,16 @@
 | 익명 로그인 | 앱 실행 → 대시보드 Authentication → Users | 익명 사용자 1명. Table Editor `profiles`에도 같은 id 한 줄 |
 | 로그인 유지 | 앱을 완전히 껐다 켜기 | 사용자 수가 늘지 않음 |
 | 분류 | 병 1장 촬영 | 이름이 채워짐. 라벨이 안 보이는 병도 브랜드는 나오는지 |
-| 그림 | 같은 촬영 | 수채화가 예전처럼 나옴 |
+| 그림 | 같은 촬영 → 수채화 카드 → "수채화로 그리기" | 찍은 직후엔 누끼만. 버튼을 눌러야 수채화가 나옴 |
 | 함수 보호 | 아래 curl | `{"error":"login required"}` |
-| 로그 | 대시보드 Edge Functions → illustrate-bottle → Logs | `art <user id> watercolor cloudflare` 줄 |
+| 로그 | 대시보드 Edge Functions → illustrate-bottle → Logs | `art <user id> watercolor cloudflare drawn` 줄 (같은 요청 반복이면 `cached`) |
 
 ```bash
 curl -X POST https://ieafmosojnvcveqawnmz.supabase.co/functions/v1/classify-bottle \
   -H "apikey: sb_publishable_4xKs90tdu-7yzxr5kbmf4w__RvdC5T3" -d '{}'
 ```
 
-촬영은 1~2장이면 충분합니다(장당 약 65원). 오류가 나면 촬영 화면 아래 디버그 줄을 캡처합니다.
+촬영은 1~2장이면 충분합니다. 비용은 "그리기"를 누를 때만 듭니다(장당 약 65원). 오류가 나면 촬영 화면 아래 디버그 줄을 캡처합니다.
 
 ### 비용 없이 돌리는 자동 테스트
 
