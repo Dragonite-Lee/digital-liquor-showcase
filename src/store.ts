@@ -51,9 +51,12 @@ type State = {
   trialsUsed: ThemeId[];
   /** 유료 테마 권유를 이미 보여 줬는지 */
   nudged: boolean;
+  /** 처음 실행 때 로그인 화면을 한 번 보여 줬는지 */
+  onboarded: boolean;
   unlockThemes: (ids: ThemeId[]) => void;
   spendTrial: (id: ThemeId) => void;
   markNudged: () => void;
+  markOnboarded: () => void;
 };
 
 export const useCellar = create<State>()(
@@ -64,9 +67,11 @@ export const useCellar = create<State>()(
       ownedThemes: [],
       trialsUsed: [],
       nudged: false,
+      onboarded: false,
       unlockThemes: (ids) => set({ ownedThemes: [...new Set([...get().ownedThemes, ...ids])] }),
       spendTrial: (id) => set({ trialsUsed: [...new Set([...get().trialsUsed, id])] }),
       markNudged: () => set({ nudged: true }),
+      markOnboarded: () => set({ onboarded: true }),
       justAdded: null,
       clearJustAdded: () => set({ justAdded: null }),
       addMany: (bottles) => set({ bottles: withSlots([...get().bottles, ...bottles]) }),
@@ -108,6 +113,7 @@ export const useCellar = create<State>()(
         ownedThemes: state.ownedThemes,
         trialsUsed: state.trialsUsed,
         nudged: state.nudged,
+        onboarded: state.onboarded,
       }),
       merge: (saved, current) => {
         const kept = (saved ?? {}) as Partial<State>;

@@ -23,6 +23,8 @@ export const supabase: SupabaseClient | null =
           autoRefreshToken: true,
           persistSession: true,
           detectSessionInUrl: false,
+          // Google 로그인은 브라우저에서 돌아온 코드로 세션을 만든다
+          flowType: 'pkce',
         },
       })
     : null;

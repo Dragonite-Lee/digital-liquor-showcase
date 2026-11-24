@@ -70,6 +70,13 @@
 - [x] **Storage 버킷**: `originals`(앱이 본인 폴더에 업로드), `art`(함수만 쓰고 본인만 읽음), 둘 다 비공개
 - 검증: 로컬 Postgres에서 마이그레이션 적용과 RLS 동작(남의 행·폴더 차단, 앱 직접 쓰기 차단)을 확인했습니다.
 
+### 2.5단계: 계정 연결 (Apple · Google)
+
+- [x] 로그인 화면: iOS Apple·Google, Android Google. 익명 사용자에 계정을 연결(linkIdentity)해 id 유지, 이미 다른 사용자 것이면 그 사용자로 로그인
+- [x] 처음 실행 때 한 번 노출, "나중에 할게요" 가능 (로그인 강제는 심사 가이드라인 5.1.1 위험이 있어 하지 않음)
+- [x] 앱 안 계정 삭제 (`delete-account` 함수, 심사 요구사항 5.1.1(v))
+- [ ] Supabase·Google Cloud 설정 (README "로그인")
+
 ### 3단계: 결제
 
 - [ ] **App Store Connect**

@@ -10,7 +10,8 @@
     "backgroundColor": "#FBEEE0",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "kr.dragonite.suljang"
+      "bundleIdentifier": "kr.dragonite.suljang",
+      "usesAppleSignIn": true
     },
     "android": {
       "package": "kr.dragonite.suljang",
@@ -57,7 +58,8 @@
             "deploymentTarget": "17.0"
           }
         }
-      ]
+      ],
+      "expo-apple-authentication"
     ]
   }
 }

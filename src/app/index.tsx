@@ -71,6 +71,15 @@ export default function Home() {
           <Text style={styles.title} accessibilityRole="header">
             {APP_TITLE}
           </Text>
+          <Pressable
+            onPress={() => router.push('/login')}
+            accessibilityRole="button"
+            accessibilityLabel="계정"
+            hitSlop={10}
+            style={({ pressed }) => [styles.account, pressed && styles.pressed]}
+          >
+            <Ionicons name="person-circle-outline" size={26} color={paper.ink} />
+          </Pressable>
         </View>
         <FilterChips />
       </View>
@@ -161,7 +170,8 @@ export default function Home() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: paper.bg },
-  head: { alignItems: 'center', paddingTop: space.m, paddingBottom: space.xs },
+  head: { alignItems: 'center', justifyContent: 'center', paddingTop: space.m, paddingBottom: space.xs },
+  account: { position: 'absolute', right: space.l, top: space.m - 2 },
   title: { fontFamily: font.hand, fontSize: 22, color: paper.ink, letterSpacing: 1 },
   empty: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.xl },
   emptyBody: { fontFamily: font.hand, fontSize: 16, lineHeight: 23, color: paper.ink, textAlign: 'center' },

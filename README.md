@@ -52,6 +52,29 @@ cp .env.example .env                                     # URL과 publishable �
 
 `.env`를 바꾼 뒤에는 개발 서버를 다시 켠다. URL이 비어 있거나 호출이 실패하면 종류와 이름을 직접 적는다.
 
+## 로그인 (Apple · Google)
+
+앱은 처음에 익명 사용자로 시작하고, 로그인 화면(`src/app/login.tsx`)에서 Apple·Google 계정을 **연결**한다. 사용자 id가 그대로라 산 테마·기록이 이어진다. 그 계정이 이미 다른 사용자(예: 예전 폰)에 연결돼 있으면 그 사용자로 로그인한다.
+
+- iOS: Apple(기기 로그인 시트) + Google(브라우저 로그인 창)
+- Android: Google
+- 계정 삭제: 로그인 화면의 "계정 삭제" → `delete-account` 함수 (App Store 심사 요구사항)
+
+### 한 번만 하는 설정
+
+1. **Supabase → Authentication → Sign In / Providers**
+   - **Allow manual linking** 켜기 (익명 사용자에 계정을 연결하려면 필요)
+   - **Apple** 켜기 → Client IDs에 `kr.dragonite.suljang` (앱 안 로그인만 쓰므로 Secret Key는 비워도 된다)
+   - **Google** 켜기 → 아래 2번에서 만든 Client ID·Client Secret 입력
+2. **Google Cloud Console** → API 및 서비스 → OAuth 동의 화면 설정 → 사용자 인증 정보 → OAuth 클라이언트 ID 만들기
+   - 유형: **웹 애플리케이션**
+   - 승인된 리디렉션 URI: `https://ieafmosojnvcveqawnmz.supabase.co/auth/v1/callback`
+3. **Supabase → Authentication → URL Configuration → Redirect URLs**에 `suljang://**` 추가
+4. 서버 반영: `npx supabase db push --remote` → `npx supabase functions deploy delete-account`
+5. 앱 다시 빌드: `npx expo run:ios --device` (Apple 로그인 모듈이 새로 들어감)
+
+Apple Developer 쪽 Sign in with Apple 권한은 Xcode 자동 서명이 App ID에 켜 준다. 안 켜지면 developer.apple.com → Identifiers → `kr.dragonite.suljang` → Sign In with Apple 체크.
+
 ## 디자인 에셋
 
 받은 원본은 `design/source/`, 앱이 쓰는 파일은 `assets/ui/`에 있다. 원본을 바꾸면 스크립트로 다시 만든다.
