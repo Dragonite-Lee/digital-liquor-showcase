@@ -6,7 +6,7 @@
 
 1. 대시보드 Authentication → Sign In / Providers → **Allow anonymous sign-ins** 켜기
 2. `git pull` → `npm install`
-3. `npx supabase db push` (테이블·저장소 생성)
+3. `npx supabase db push --remote` (테이블·저장소 생성)
 4. `npx supabase functions deploy classify-bottle illustrate-bottle`
 5. `npx expo start` 다시 켜기 (네이티브 변경 없음, 다시 빌드할 필요 없음)
 

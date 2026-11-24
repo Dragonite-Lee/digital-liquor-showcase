@@ -69,7 +69,7 @@ cp .env.example .env                                     # URL과 publishable �
 앱은 가입 화면 없이 기기마다 익명 사용자로 로그인하고, 함수는 그 사용자 토큰이 있어야 응답한다.
 
 1. 대시보드 Authentication → Sign In / Providers → **Allow anonymous sign-ins** 켜기
-2. 테이블·저장소 만들기: `npx supabase db push`
+2. 테이블·저장소 만들기: `npx supabase db push --remote`
 3. 함수 다시 올리기: `npx supabase functions deploy classify-bottle illustrate-bottle`
 
 순서를 지켜야 한다. 1번 전에 3번을 하면 앱이 로그인하지 못해 분류·그림이 실패한다(직접 입력으로 넘어간다).
