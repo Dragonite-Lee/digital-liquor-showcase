@@ -4,11 +4,11 @@ import { useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { isAvailable, liftSubject } from 'subject-lift';
 
-import { newId, useCellar } from '@/store';
+import { type ArtFiles, newId, useCellar } from '@/store';
 
 import type { CategoryId } from './categories';
 import { classifyBottle, classifyEnabled, lastClassifyError } from './classify';
-import { type Art, illustrateBottle, illustrateEnabled } from './illustrate';
+import { type Art, DailyLimitError, illustrateBottle, illustrateEnabled } from './illustrate';
 import { keepImage } from './images';
 import type { ThemeId } from './themes';
 
@@ -32,8 +32,9 @@ const EMPTY = { name: '', category: 'etc' as CategoryId, memo: '' };
 const KEEP_PHOTO_SIDE = 1024;
 
 /**
- * 촬영 한 번의 흐름: 사진 → 병 떼어 내기 + 라벨 읽기 + 수채화 그리기(동시에) → 확인 → 저장.
- * 확인 화면에서 테마를 바꾸면 그 테마로 다시 그린다. 그린 그림은 테마별로 기억해 되돌아가도 다시 안 그린다.
+ * 촬영 한 번의 흐름: 사진 → 병 떼어 내기(폰 안, 무료) + 라벨 읽기 → 확인 → 저장.
+ * 테마는 고르기만 해서는 그리지 않는다. "그리기"를 눌러야 그린다 (그림 한 장마다 비용이 든다).
+ * 그린 그림은 테마별로 기억해 되돌아가도 다시 안 그리고, 담을 때 전부 병에 남긴다.
  */
 export function useCapture() {
   const add = useCellar((s) => s.add);
@@ -44,10 +45,11 @@ export function useCapture() {
   const [draft, setDraft] = useState(EMPTY);
   const [guess, setGuess] = useState<GuessState>('off');
   const [guessError, setGuessError] = useState<string | null>(null);
-  const [theme, setTheme] = useState<ThemeId>('watercolor');
+  const [theme, setTheme] = useState<ThemeId | null>(null);
   const [arts, setArts] = useState<Partial<Record<ThemeId, Art>>>({});
   const [painting, setPainting] = useState<ThemeId | null>(null);
   const [paintError, setPaintError] = useState<string | null>(null);
+  const [limitHit, setLimitHit] = useState(false);
   const [saveError, setSaveError] = useState(false);
   const [saving, setSaving] = useState(false);
   // 확인 화면과 담은 뒤가 같은 모습이 되도록 id를 미리 정한다
@@ -58,10 +60,10 @@ export function useCapture() {
   // 다시 찍으면 이전 사진의 결과가 늦게 도착해도 버린다
   const run = useRef(0);
 
-  const art = arts[theme] ?? null;
+  const art = theme ? (arts[theme] ?? null) : null;
   const paint: PaintState = !illustrateEnabled
     ? 'off'
-    : painting === theme
+    : painting && painting === theme
       ? 'painting'
       : art
         ? 'done'
@@ -77,19 +79,28 @@ export function useCapture() {
     setCut(null);
     setDraft(EMPTY);
     setGuess('off');
-    setTheme('watercolor');
+    setTheme(null);
     setArts({});
     setPainting(null);
     setPaintError(null);
     setSaveError(false);
   };
 
-  const paintAs = (next: ThemeId, source = photo, mine = run.current) => {
+  /** 테마를 고른다 (그리지는 않는다). null이면 누끼 */
+  const choose = (next: ThemeId | null) => {
     setTheme(next);
     setPaintError(null);
-    if (!illustrateEnabled || !source || arts[next]) return;
+  };
+
+  /** 고른 테마로 그린다. 이미 그린 테마는 redraw일 때만 다시 그린다. */
+  const draw = (next: ThemeId, redraw = false) => {
+    setTheme(next);
+    setPaintError(null);
+    const source = photo;
+    const mine = run.current;
+    if (!illustrateEnabled || !source || painting || (arts[next] && !redraw)) return;
     setPainting(next);
-    illustrateBottle(source.uri, source.width, source.height, next)
+    illustrateBottle(source.uri, source.width, source.height, next, { bottleId: id, redraw })
       .then((a) => {
         if (mine !== run.current) return;
         setArts((prev) => ({ ...prev, [next]: a }));
@@ -97,6 +108,7 @@ export function useCapture() {
       .catch((e) => {
         if (mine !== run.current) return;
         setPaintError(e instanceof Error ? e.message : String(e));
+        setLimitHit(e instanceof DailyLimitError);
       })
       .finally(() => {
         if (mine === run.current) setPainting((p) => (p === next ? null : p));
@@ -110,14 +122,14 @@ export function useCapture() {
     setPhoto(source);
     setDraft(EMPTY);
     setArts({});
+    setTheme(null);
+    setPaintError(null);
     setId(newId());
     setStage('lifting');
     setGuess(classifyEnabled ? 'reading' : 'off');
     setGuessError(null);
 
     const guessing = classifyBottle(uri, width, height);
-    // 앱에 포함된 수채화는 바로 그리기 시작한다
-    paintAs('watercolor', source, mine);
 
     let next: Cut = { uri, width, height, lifted: false };
     if (isAvailable()) {
@@ -179,11 +191,19 @@ export function useCapture() {
     }
   };
 
-  /** 술장에 담는다. 성공하면 true. 고른 테마의 그림이 없으면 사진 누끼로 담는다. */
+  /** 술장에 담는다. 성공하면 true. 그린 그림은 전부 남기고, 고른 테마의 그림이 없으면 누끼로 보여 준다. */
   const save = async (): Promise<boolean> => {
     if (!cut || saving) return false;
     setSaving(true);
     try {
+      const kept: Partial<Record<ThemeId, ArtFiles>> = {};
+      for (const [t, a] of Object.entries(arts) as [ThemeId, Art][]) {
+        kept[t] = {
+          art: keepImage(a.uri, `${id}-art-${t}`),
+          artSticker: a.stickerUri ? keepImage(a.stickerUri, `${id}-art-sticker-${t}`) : undefined,
+        };
+      }
+      const shown = theme ? kept[theme] : undefined;
       add({
         id,
         name: draft.name.trim(),
@@ -191,9 +211,10 @@ export function useCapture() {
         memo: draft.memo.trim(),
         image: keepImage(cut.uri, id),
         sticker: cut.stickerUri ? keepImage(cut.stickerUri, `${id}-sticker`) : undefined,
-        art: art ? keepImage(art.uri, `${id}-art`) : undefined,
-        artSticker: art?.stickerUri ? keepImage(art.stickerUri, `${id}-art-sticker`) : undefined,
-        theme: art ? theme : undefined,
+        art: shown?.art,
+        artSticker: shown?.artSticker,
+        theme: shown && theme ? theme : undefined,
+        arts: Object.keys(kept).length ? kept : undefined,
         photo: await keepPhoto(),
         width: cut.width,
         height: cut.height,
@@ -218,14 +239,19 @@ export function useCapture() {
     guessError,
     theme,
     art,
+    /** 그린 테마들 */
+    drawn: Object.keys(arts) as ThemeId[],
+    painting,
     paint,
     paintError,
+    limitHit,
     saveError,
     saving,
     process,
     reset,
     save,
-    paintAs,
+    choose,
+    draw,
     setName,
     setCategory,
     setMemo,

@@ -2,28 +2,11 @@
 // 로그인한 사용자 본인만 지울 수 있다. 사진 저장소의 파일을 지운 뒤 auth 사용자를 지우면
 // profiles·entitlements·art_jobs·usage_daily 행은 외래 키로 함께 지워진다.
 // 배포: supabase functions deploy delete-account
-import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
-
+import { type Admin, adminClient } from '../_shared/admin.ts';
 import { requireUser } from '../_shared/auth.ts';
 import { cors, json } from '../_shared/http.ts';
 
-/** 함수 환경의 secret 키 (JSON 객체 또는 문자열), 없으면 예전 service_role 키 */
-function secretKey(): string | undefined {
-  const raw = Deno.env.get('SUPABASE_SECRET_KEYS');
-  if (raw) {
-    try {
-      const parsed = JSON.parse(raw);
-      const first = typeof parsed === 'string' ? parsed : Object.values(parsed ?? {})[0];
-      if (typeof first === 'string' && first) return first;
-    } catch {
-      if (raw.trim()) return raw.trim();
-    }
-  }
-  return Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-}
-
-// deno-lint-ignore no-explicit-any
-async function removeFolder(admin: SupabaseClient<any, any, any>, bucket: string, userId: string) {
+async function removeFolder(admin: Admin, bucket: string, userId: string) {
   // 한 번에 1000개씩 나눠 지운다
   for (;;) {
     const { data, error } = await admin.storage.from(bucket).list(userId, { limit: 1000 });
@@ -39,10 +22,8 @@ Deno.serve(async (req) => {
   const caller = await requireUser(req);
   if (caller instanceof Response) return caller;
 
-  const url = Deno.env.get('SUPABASE_URL');
-  const key = secretKey();
-  if (!url || !key) return json({ error: 'server not configured' }, 500);
-  const admin = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+  const admin = adminClient();
+  if (!admin) return json({ error: 'server not configured' }, 500);
 
   await removeFolder(admin, 'originals', caller.id);
   await removeFolder(admin, 'art', caller.id);

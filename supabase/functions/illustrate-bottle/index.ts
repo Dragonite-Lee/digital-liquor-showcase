@@ -1,8 +1,10 @@
 // 병 사진 → 테마별 그림(수채화·모네·고흐·크레용). Supabase Edge Function (Deno).
 // 배포: supabase functions deploy illustrate-bottle   (verify_jwt는 끄고 함수 안에서 사용자 토큰을 검증한다)
 // 모델 선택: providers/index.ts (기본 Cloudflare 경유 나노바나나, ART_PROVIDER=google로 직접 호출)
+import { adminClient } from '../_shared/admin.ts';
 import { requireUser } from '../_shared/auth.ts';
 import { cors, json } from '../_shared/http.ts';
+import { dbLedger, illustrate } from './ledger.ts';
 import { DEFAULT_STYLES } from './prompts.ts';
 import { ProviderError, providerFor } from './providers/index.ts';
 
@@ -29,22 +31,35 @@ Deno.serve(async (req) => {
   let image: string;
   let mediaType: string;
   let theme: string;
+  let bottleId: string;
+  let redraw: boolean;
   try {
     const body = await req.json();
     image = body.image;
     mediaType = body.mediaType ?? 'image/jpeg';
     theme = typeof body.theme === 'string' && body.theme in STYLES ? body.theme : 'watercolor';
+    bottleId = typeof body.bottleId === 'string' && body.bottleId ? body.bottleId.slice(0, 64) : 'unknown';
+    redraw = body.redraw === true;
     if (typeof image !== 'string' || image.length < 100) throw new Error('missing image');
   } catch {
-    return json({ error: 'Body must be { image: base64, mediaType?, theme? }' }, 400);
+    return json({ error: 'Body must be { image: base64, mediaType?, theme?, bottleId?, redraw? }' }, 400);
   }
   if (image.length > MAX_IMAGE) return json({ error: 'image too large' }, 413);
 
+  const admin = adminClient();
+  if (!admin) return json({ error: 'server not configured' }, 500);
+
   const provider = providerFor(theme);
   try {
-    console.log('art', caller.id, theme, provider.id);
-    const out = await provider.generate({ image, mediaType, prompt: `${STYLES[theme]} ${KEEP}` });
-    return json({ image: out.image, model: out.model, provider: provider.id });
+    const result = await illustrate(
+      dbLedger(admin),
+      { id: provider.id, draw: () => provider.generate({ image, mediaType, prompt: `${STYLES[theme]} ${KEEP}` }) },
+      { userId: caller.id, image, mediaType, theme, bottleId, redraw },
+    );
+    console.log('art', caller.id, theme, provider.id, result.kind);
+    if (result.kind === 'limit') return json({ error: 'daily_limit', limit: result.limit }, 429);
+    if (result.kind === 'cached') return json({ image: result.image, cached: true });
+    return json({ image: result.image, model: result.model, provider: provider.id, used: result.used });
   } catch (e) {
     if (e instanceof ProviderError) {
       console.error(provider.id, caller.id, e.code, e.status, e.detail);

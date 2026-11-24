@@ -15,9 +15,10 @@ import {
   UnderlineButton,
 } from '@/components/bottle/parts';
 import { ThemePicker } from '@/components/themes/ThemePicker';
+import { ThemeAction } from '@/components/themes/ThemeAction';
 import { ThemeSheet } from '@/components/themes/ThemeSheet';
-import { illustrateBottle, illustrateEnabled } from '@/lib/illustrate';
-import { dropImage, imageUri, keepImage } from '@/lib/images';
+import { DailyLimitError, illustrateBottle, illustrateEnabled } from '@/lib/illustrate';
+import { imageUri, keepImage } from '@/lib/images';
 import { isUnlocked } from '@/lib/purchases';
 import { themeOf, type ThemeId } from '@/lib/themes';
 import { useCellar } from '@/store';
@@ -34,10 +35,15 @@ export default function BottleDetail() {
   const insets = useSafeAreaInsets();
   const bottle = useCellar((s) => s.bottles.find((b) => b.id === id));
   const update = useCellar((s) => s.update);
+  const showTheme = useCellar((s) => s.showTheme);
+  const putArt = useCellar((s) => s.putArt);
   const remove = useCellar((s) => s.remove);
   const owned = useCellar((s) => s.ownedThemes);
   const [painting, setPainting] = useState<ThemeId | null>(null);
   const [paintError, setPaintError] = useState<string | null>(null);
+  const [limitHit, setLimitHit] = useState(false);
+  // 고른 테마 (아직 안 그렸으면 견본과 "그리기" 버튼만). 처음엔 지금 보여 주는 그림의 테마
+  const [chosen, setChosen] = useState<ThemeId | null>(() => bottle?.theme ?? null);
   // 홈의 권유 카드에서 들어오면 그 테마의 체험 시트를 바로 연다
   const [locked, setLocked] = useState<ThemeId | null>(tryTheme && !isUnlocked(tryTheme, owned) ? tryTheme : null);
 
@@ -51,34 +57,48 @@ export default function BottleDetail() {
     );
   }
 
-  /** 이미 담은 병을 고른 테마로 (다시) 그린다. 원본 사진이 남아 있으면 그걸로, 없으면 누끼로. */
-  const paint = async (theme: ThemeId) => {
+  const drawn = Object.keys(bottle.arts ?? {}) as ThemeId[];
+
+  /** 고른 테마로 그린다 (redraw면 서버 캐시를 건너뛰고 새로). 원본 사진이 남아 있으면 그걸로, 없으면 누끼로. */
+  const paint = async (theme: ThemeId, redraw = false) => {
     if (painting) return;
+    setChosen(theme);
     setPainting(theme);
     setPaintError(null);
     try {
+      const opts = { bottleId: bottle.id, redraw };
       const art = bottle.photo
-        ? await illustrateBottle(imageUri(bottle.photo), 1024, 1024 * (bottle.height / bottle.width || 1), theme)
-        : await illustrateBottle(imageUri(bottle.image), bottle.width, bottle.height, theme, !!bottle.sticker);
+        ? await illustrateBottle(imageUri(bottle.photo), 1024, 1024 * (bottle.height / bottle.width || 1), theme, opts)
+        : await illustrateBottle(imageUri(bottle.image), bottle.width, bottle.height, theme, { ...opts, png: !!bottle.sticker });
       const stamp = Date.now().toString(36);
-      const next = {
-        art: keepImage(art.uri, `${bottle.id}-art-${stamp}`),
-        artSticker: art.stickerUri ? keepImage(art.stickerUri, `${bottle.id}-art-sticker-${stamp}`) : undefined,
-        theme,
-      };
-      if (bottle.art) dropImage(bottle.art);
-      if (bottle.artSticker) dropImage(bottle.artSticker);
-      update(bottle.id, next);
+      putArt(bottle.id, theme, {
+        art: keepImage(art.uri, `${bottle.id}-art-${theme}-${stamp}`),
+        artSticker: art.stickerUri ? keepImage(art.stickerUri, `${bottle.id}-art-sticker-${theme}-${stamp}`) : undefined,
+      });
     } catch (e) {
       setPaintError(e instanceof Error ? e.message : String(e));
+      setLimitHit(e instanceof DailyLimitError);
     } finally {
       setPainting(null);
     }
   };
 
+  // 고르기만 한다: 이미 그린 테마면 바로 바꿔 끼우고(무료), 아니면 견본과 "그리기" 버튼을 보여 준다.
+  // 고른 카드를 다시 누르면 누끼로.
   const pickTheme = (theme: ThemeId) => {
-    if (isUnlocked(theme, owned)) paint(theme);
-    else setLocked(theme);
+    if (painting) return;
+    setPaintError(null);
+    if (chosen === theme) {
+      setChosen(null);
+      showTheme(bottle.id, null);
+    } else if (drawn.includes(theme)) {
+      setChosen(theme);
+      showTheme(bottle.id, theme);
+    } else if (isUnlocked(theme, owned)) {
+      setChosen(theme);
+    } else {
+      setLocked(theme);
+    }
   };
 
   const confirmRemove = () => {
@@ -107,12 +127,20 @@ export default function BottleDetail() {
                 <SectionTitle>
                   {painting ? `${themeOf(painting).label}(으)로 그리는 중…` : '테마를 선택해 주세요'}
                 </SectionTitle>
-                <ThemePicker value={bottle.art ? (bottle.theme ?? 'watercolor') : null} busy={painting} onSelect={pickTheme} />
-                {paintError && (
-                  <SmallText tone="accent">
-                    그리지 못했어요. 잠시 뒤 다시 눌러 주세요.{__DEV__ ? `\n${paintError}` : ''}
-                  </SmallText>
-                )}
+                <ThemePicker value={chosen} busy={painting} drawn={drawn} onSelect={pickTheme} />
+                <ThemeAction
+                  theme={chosen}
+                  drawn={!!chosen && drawn.includes(chosen)}
+                  painting={!!painting}
+                  error={paintError}
+                  limitHit={limitHit}
+                  onDraw={() => chosen && paint(chosen)}
+                  onRedraw={() => chosen && paint(chosen, true)}
+                  onPlain={() => {
+                    setChosen(null);
+                    showTheme(bottle.id, null);
+                  }}
+                />
               </View>
             )}
 

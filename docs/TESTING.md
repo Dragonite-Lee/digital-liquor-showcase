@@ -37,6 +37,25 @@ deno test -A supabase/functions/_tests   # 재시도·응답 파싱·모델 선�
 npx tsc --noEmit
 ```
 
+## 그림 정책: 누끼 먼저, 누르면 그리기, 하루 10장
+
+### 서버에 올리기
+```bash
+npx supabase db push --remote                       # claim_art · refund_art · 캐시 인덱스
+npx supabase functions deploy illustrate-bottle
+npx supabase functions deploy delete-account        # 공통 admin 모듈로 바꿈
+```
+
+### 확인할 것
+- [ ] 찍은 직후 그림이 자동으로 그려지지 않고 누끼만 보인다
+- [ ] 테마 카드를 누르면 견본과 "○○(으)로 그리기" 버튼만 나온다 (그리지 않음)
+- [ ] 그리기 → 그림이 나온다. 다른 테마를 그렸다가 돌아오면 바로 바뀐다 (다시 안 그림)
+- [ ] 고른 카드를 다시 누르거나 "그림 없이 보기" → 누끼로 담긴다
+- [ ] 담은 뒤 상세에서 이미 그린 테마 카드에 "그렸어요"가 있고, 누르면 무료로 바뀐다
+- [ ] Supabase `art_jobs`에 그린 만큼 줄이 생기고 `art` 저장소에 파일이 생긴다
+- [ ] 같은 병·같은 테마를 상세에서 다시 요청해도 함수 로그가 `cached`다 (앱 재설치 후 포함)
+- [ ] `usage_daily.art_count`를 9로 바꿔 두고 2장 그리면 두 번째에 "오늘 그릴 수 있는 10장을 다 썼어요"
+
 ## 로그인 (설정은 README "로그인" 참고)
 
 | 확인 | 정상 |

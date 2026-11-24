@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CategoryPicker } from '@/components/CategoryPicker';
 import { formStyles, MemoBox, NameField, PaperScreen, SectionTitle, SmallText, UnderlineButton } from '@/components/bottle/parts';
 import { ThemePicker } from '@/components/themes/ThemePicker';
+import { ThemeAction } from '@/components/themes/ThemeAction';
 import { ThemeSheet } from '@/components/themes/ThemeSheet';
 import { illustrateEnabled } from '@/lib/illustrate';
 import { isUnlocked } from '@/lib/purchases';
@@ -30,8 +31,10 @@ export function Review({ capture, cut, onSaved }: { capture: Capture; cut: Cut; 
   const owned = useCellar((s) => s.ownedThemes);
   const [locked, setLocked] = useState<ThemeId | null>(null);
 
+  // 고르기만 한다. 이미 고른 카드를 다시 누르면 고르기 취소(누끼). 이미 그린 테마는 잠겨 있어도 볼 수 있다.
   const pickTheme = (id: ThemeId) => {
-    if (isUnlocked(id, owned)) capture.paintAs(id);
+    if (capture.theme === id) return capture.choose(null);
+    if (isUnlocked(id, owned) || capture.drawn.includes(id)) capture.choose(id);
     else setLocked(id);
   };
   // 그림이 오면 그림, 아니면 누끼(또는 사진)
@@ -49,9 +52,9 @@ export function Review({ capture, cut, onSaved }: { capture: Capture; cut: Cut; 
               style={[formStyles.bottle, plain && styles.plain]}
               contentFit={plain ? 'cover' : 'contain'}
               transition={400}
-              accessibilityLabel={capture.art ? `${themeOf(capture.theme).label}(으)로 그린 병` : '방금 찍은 병'}
+              accessibilityLabel={capture.art && capture.theme ? `${themeOf(capture.theme).label}(으)로 그린 병` : '방금 찍은 병'}
             />
-            {painting && (
+            {painting && capture.theme && (
               <View style={styles.painting}>
                 <ActivityIndicator color={paper.cream} size="small" />
                 <Text style={styles.paintingText}>{themeOf(capture.theme).label}(으)로 그리는 중…</Text>
@@ -68,11 +71,17 @@ export function Review({ capture, cut, onSaved }: { capture: Capture; cut: Cut; 
             {illustrateEnabled && (
               <View style={formStyles.option}>
                 <SectionTitle>테마를 선택해 주세요</SectionTitle>
-                <ThemePicker value={capture.theme} busy={painting ? capture.theme : null} onSelect={pickTheme} />
-                {capture.paint === 'failed' && (
-                  <SmallText tone="accent">그림을 그리지 못해 사진으로 담아요. 담은 뒤 다시 그릴 수 있어요.</SmallText>
-                )}
-                {__DEV__ && capture.paintError && <SmallText tone="accent">개발용 — 그림: {capture.paintError}</SmallText>}
+                <ThemePicker value={capture.theme} busy={capture.painting} drawn={capture.drawn} onSelect={pickTheme} />
+                <ThemeAction
+                  theme={capture.theme}
+                  drawn={!!capture.art}
+                  painting={painting}
+                  error={capture.paintError}
+                  limitHit={capture.limitHit}
+                  onDraw={() => capture.theme && capture.draw(capture.theme)}
+                  onRedraw={() => capture.theme && capture.draw(capture.theme, true)}
+                  onPlain={() => capture.choose(null)}
+                />
               </View>
             )}
 
@@ -115,7 +124,7 @@ export function Review({ capture, cut, onSaved }: { capture: Capture; cut: Cut; 
         onClose={() => setLocked(null)}
         onReady={(id) => {
           setLocked(null);
-          capture.paintAs(id);
+          capture.draw(id);
         }}
       />
     </PaperScreen>

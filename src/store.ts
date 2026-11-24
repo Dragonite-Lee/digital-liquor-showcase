@@ -6,6 +6,9 @@ import type { CategoryId } from './lib/categories';
 import type { ThemeId } from './lib/themes';
 import { dropImage } from './lib/images';
 
+/** 테마 그림 파일 (투명 배경 그림과 홈용 테두리 스티커) */
+export type ArtFiles = { art: string; artSticker?: string };
+
 export type Bottle = {
   id: string;
   name: string;
@@ -15,12 +18,14 @@ export type Bottle = {
   image: string;
   /** 테두리를 두른 스티커 (홈). 누끼를 못 딴 병에는 없다. */
   sticker?: string;
-  /** 테마 그림 (투명 배경). 있으면 사진 누끼 대신 이걸 보여 준다 */
+  /** 지금 보여 주는 테마 그림 (투명 배경). 있으면 사진 누끼 대신 이걸 보여 준다 */
   art?: string;
   /** 테마 그림의 테두리 스티커 (홈) */
   artSticker?: string;
-  /** 그림 테마 */
+  /** 지금 보여 주는 그림의 테마. 없으면 누끼 */
   theme?: ThemeId;
+  /** 이 병에 그린 테마 그림 전부. 테마를 바꿔 끼워도 다시 그리지 않는다 */
+  arts?: Partial<Record<ThemeId, ArtFiles>>;
   /** 다른 테마로 다시 그릴 때 쓰는 원본 사진 (긴 변 1024px) */
   photo?: string;
   width: number;
@@ -42,7 +47,11 @@ type State = {
   moveTo: (id: string, slot: number) => void;
   setFilter: (filter: CategoryId | 'all') => void;
   add: (bottle: Bottle) => void;
-  update: (id: string, patch: Partial<Pick<Bottle, 'name' | 'category' | 'memo' | 'art' | 'artSticker' | 'theme'>>) => void;
+  update: (id: string, patch: Partial<Pick<Bottle, 'name' | 'category' | 'memo'>>) => void;
+  /** 이미 그린 테마 그림으로 바꿔 보여 준다. null이면 누끼 */
+  showTheme: (id: string, theme: ThemeId | null) => void;
+  /** 새로 그린 그림을 넣고 보여 준다. 같은 테마의 예전 그림 파일은 지운다 */
+  putArt: (id: string, theme: ThemeId, files: ArtFiles) => void;
   remove: (id: string) => void;
 
   /** 산 테마 (수채화는 앱 구매에 포함이라 따로 두지 않는다) */
@@ -90,13 +99,34 @@ export const useCellar = create<State>()(
       },
       update: (id, patch) =>
         set({ bottles: get().bottles.map((b) => (b.id === id ? { ...b, ...patch } : b)) }),
+      showTheme: (id, theme) =>
+        set({
+          bottles: get().bottles.map((b) => {
+            if (b.id !== id) return b;
+            const files = theme ? b.arts?.[theme] : undefined;
+            return files
+              ? { ...b, art: files.art, artSticker: files.artSticker, theme: theme ?? undefined }
+              : { ...b, art: undefined, artSticker: undefined, theme: undefined };
+          }),
+        }),
+      putArt: (id, theme, files) =>
+        set({
+          bottles: get().bottles.map((b) => {
+            if (b.id !== id) return b;
+            const old = b.arts?.[theme];
+            if (old) {
+              if (old.art !== files.art) dropImage(old.art);
+              if (old.artSticker && old.artSticker !== files.artSticker) dropImage(old.artSticker);
+            }
+            return { ...b, arts: { ...b.arts, [theme]: files }, art: files.art, artSticker: files.artSticker, theme };
+          }),
+        }),
       remove: (id) => {
         const target = get().bottles.find((b) => b.id === id);
         if (target) {
           dropImage(target.image);
           if (target.sticker) dropImage(target.sticker);
-          if (target.art) dropImage(target.art);
-          if (target.artSticker) dropImage(target.artSticker);
+          for (const f of artFilesOf(target)) dropImage(f);
           if (target.photo) dropImage(target.photo);
         }
         const bottles = get().bottles.filter((b) => b.id !== id);
@@ -125,12 +155,30 @@ export const useCellar = create<State>()(
           ownedThemes: (kept.ownedThemes ?? current.ownedThemes).map(renamed),
           trialsUsed: (kept.trialsUsed ?? current.trialsUsed).map(renamed),
           // 자리 번호가 없던 예전 데이터에도 자리를 준다
-          bottles: withSlots((kept.bottles ?? []).map((b) => (b.theme ? { ...b, theme: renamed(b.theme) } : b))),
+          // 테마별 보관(arts)이 없던 예전 데이터는 보여 주던 그림 하나를 넣어 둔다
+          bottles: withSlots(
+            (kept.bottles ?? []).map((b) => {
+              const theme = b.theme ? renamed(b.theme) : undefined;
+              const arts = b.arts ?? (theme && b.art ? { [theme]: { art: b.art, artSticker: b.artSticker } } : undefined);
+              return { ...b, theme, arts };
+            }),
+          ),
         };
       },
     },
   ),
 );
+
+/** 병의 테마 그림 파일 전부 (겹치지 않게) */
+function artFilesOf(b: Bottle): string[] {
+  const files = new Set<string>();
+  for (const f of [b.art, b.artSticker]) if (f) files.add(f);
+  for (const a of Object.values(b.arts ?? {})) {
+    if (a?.art) files.add(a.art);
+    if (a?.artSticker) files.add(a.artSticker);
+  }
+  return [...files];
+}
 
 /** 자리 번호가 없는 병에 앞에서부터 빈 자리를 준다. 이미 자리가 있는 병은 건드리지 않는다. */
 export function withSlots(bottles: Bottle[]): Bottle[] {

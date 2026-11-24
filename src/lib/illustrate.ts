@@ -17,17 +17,33 @@ export const illustrateEnabled = !!URL && Platform.OS !== 'web';
 
 export type Art = { uri: string; stickerUri?: string; width: number; height: number };
 
+/** 오늘 그릴 수 있는 장수를 다 썼다 (서버 하루 한도) */
+export class DailyLimitError extends Error {
+  constructor(public limit: number) {
+    super(`오늘 그릴 수 있는 ${limit}장을 다 썼어요. 내일 다시 그려 주세요.`);
+  }
+}
+
+type Options = {
+  /** 투명 배경 누끼(PNG)를 보낼 때 true. 원본 사진은 JPEG로 보낸다. */
+  png?: boolean;
+  /** 서버 기록용 병 id */
+  bottleId?: string;
+  /** 마음에 안 들어 다시 그리기: 서버 캐시를 건너뛴다 */
+  redraw?: boolean;
+};
+
 /**
  * 병 사진을 테마(수채화·인상주의·유화·크레용) 그림으로 다시 그린다.
  * 받은 그림(흰 배경)에서 다시 병만 떼어 내 투명 배경으로 만든다. 떼어 내기를 못 하면 흰 배경 그림 그대로.
- * @param png 투명 배경 누끼(PNG)를 보낼 때 true. 원본 사진은 JPEG로 보낸다.
+ * 같은 사진·같은 테마는 서버가 저장해 둔 그림을 돌려준다 (redraw가 아니면). 새로 그리면 하루 한도를 쓴다.
  */
 export async function illustrateBottle(
   uri: string,
   width: number,
   height: number,
-  theme: ThemeId = 'watercolor',
-  png = false,
+  theme: ThemeId,
+  { png = false, bottleId, redraw = false }: Options = {},
 ): Promise<Art> {
   if (!URL) throw new Error('그림 함수 주소가 없어요 (.env)');
 
@@ -39,9 +55,13 @@ export async function illustrateBottle(
   const res = await fetch(URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
-    body: JSON.stringify({ image: input.base64, mediaType: png ? 'image/png' : 'image/jpeg', theme }),
+    body: JSON.stringify({ image: input.base64, mediaType: png ? 'image/png' : 'image/jpeg', theme, bottleId, redraw }),
   });
   if (res.status === 401) throw new Error('서버 로그인이 안 됐어요 — 네트워크를 확인하고 다시 시도해 주세요');
+  if (res.status === 429) {
+    const body = await res.json().catch(() => ({}));
+    throw new DailyLimitError(typeof body?.limit === 'number' ? body.limit : 10);
+  }
   if (res.status === 422) throw new Error(`그림 모델의 안전 필터가 이 병을 막았어요 — ${(await res.text()).slice(0, 240)}`);
   if (!res.ok) throw new Error(`HTTP ${res.status} ${(await res.text()).slice(0, 200)}`);
   const data = await res.json();
