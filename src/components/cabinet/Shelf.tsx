@@ -1,4 +1,3 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { memo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
@@ -8,17 +7,17 @@ import { MemoSlip } from '@/components/MemoSlip';
 import { seeded } from '@/lib/seeded';
 import type { Bottle } from '@/store';
 
-import { BAY, BOTTLE, type Cell, EDGE, GLASS, LIP, SLOT, STAND } from './layout';
+import { BOTTLE, type Cell, SLOT } from './layout';
 import { useMove } from './MoveContext';
+
+type Bay = { top: number; floor: number; lipTop: number; lipH: number };
 
 function Standing({ bottle }: { bottle: Bottle }) {
   const { movingId, canMove, pick } = useMove();
   const held = movingId === bottle.id;
   return (
     <>
-      <View style={styles.mirrorClip} pointerEvents="none">
-        <BottleImage bottle={bottle} style={styles.mirror} />
-      </View>
+      {/* 유리 선반에 닿는 그림자 */}
       <View style={[styles.contact, held && styles.contactHeld]} pointerEvents="none" />
       <Pressable
         onPress={() => router.push({ pathname: '/bottle/[id]', params: { id: bottle.id } })}
@@ -56,94 +55,51 @@ function Slot({ cell }: { cell: Cell }) {
   );
 }
 
-export const Shelf = memo(function Shelf({ cells }: { cells: Cell[] }) {
+/** 진열장 한 단: 유리 선반 위 병 3개 + 그 아래 원목 띠에 붙인 메모지 */
+export const Shelf = memo(function Shelf({ cells, bay, left, width }: { cells: Cell[]; bay: Bay; left: number; width: number }) {
   return (
-    <View>
-      <View style={styles.bay}>
-        {/* 뒤판: 위 조명에서 아래로 갈수록 어두워진다 */}
-        <LinearGradient colors={['#FBF1D3', '#EDD9A6', '#B98F55']} locations={[0, 0.5, 1]} style={StyleSheet.absoluteFill} />
-        <View style={styles.hotspot} />
-        {/* 안쪽 옆벽 그늘 — 칸에 깊이를 준다 */}
-        <LinearGradient
-          colors={['rgba(58,32,10,0.55)', 'rgba(58,32,10,0)']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={[styles.wall, { left: 0 }]}
-        />
-        <LinearGradient
-          colors={['rgba(58,32,10,0)', 'rgba(58,32,10,0.55)']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={[styles.wall, { right: 0 }]}
-        />
-        <LinearGradient colors={['rgba(255,255,255,0.06)', 'rgba(255,255,255,0.34)']} style={styles.glassTop} />
-        <View style={styles.row}>
-          {cells.map((cell) => (
-            <Slot key={cell.slot} cell={cell} />
-          ))}
-        </View>
-        <LinearGradient colors={['rgba(255,252,238,0.95)', 'rgba(255,252,238,0)']} style={styles.ledGlow} pointerEvents="none" />
-        <View style={styles.led} />
+    <>
+      <View style={[styles.row, { left, width, top: bay.top, height: bay.floor - bay.top }]}>
+        {cells.map((cell) => (
+          <Slot key={cell.slot} cell={cell} />
+        ))}
       </View>
-
-      <LinearGradient colors={['#F4FFF9', '#9CC4B2', '#5E8776']} locations={[0, 0.35, 1]} style={styles.glassEdge} />
-
-      {/* 선반 아래 원목 띠 — 메모지를 붙이는 자리 */}
-      <LinearGradient colors={['#1F120A', '#4B2E1B', '#38210F']} locations={[0, 0.25, 1]} style={styles.lip}>
+      <View style={[styles.lip, { left, width, top: bay.lipTop, height: bay.lipH }]} pointerEvents="none">
         {cells.map(({ slot, bottle }) => (
           <View key={slot} style={styles.memoSlot}>
-            {bottle ? (
-              <MemoSlip name={bottle.name} memo={bottle.memo} tilt={(seeded(bottle.id, 5) - 0.5) * 4} />
-            ) : null}
+            {bottle ? <MemoSlip name={bottle.name} memo={bottle.memo} tilt={(seeded(bottle.id, 5) - 0.5) * 4} /> : null}
           </View>
         ))}
-      </LinearGradient>
-    </View>
+      </View>
+    </>
   );
 });
 
 const styles = StyleSheet.create({
-  bay: { height: BAY, overflow: 'hidden' },
-  hotspot: {
-    position: 'absolute',
-    top: -100,
-    left: '10%',
-    width: '80%',
-    height: 200,
-    backgroundImage: 'radial-gradient(ellipse at center, rgba(255,253,240,0.85) 0%, rgba(255,253,240,0) 68%)',
-  },
-  wall: { position: 'absolute', top: 0, bottom: 0, width: 24 },
-  glassTop: { position: 'absolute', left: 0, right: 0, bottom: 0, height: GLASS },
-  row: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, flexDirection: 'row', paddingHorizontal: 10 },
-  slot: { width: SLOT, alignItems: 'center', justifyContent: 'flex-end' },
-  bottleHit: { width: '84%', height: BOTTLE, marginBottom: STAND },
+  row: { position: 'absolute', flexDirection: 'row' },
+  slot: { width: SLOT, height: '100%', alignItems: 'center', justifyContent: 'flex-end' },
+  bottleHit: { width: SLOT * 0.62, height: BOTTLE },
   bottle: { width: '100%', height: '100%' },
   // 집어 든 병은 선반에서 살짝 떠오른다
-  bottleHeld: { transform: [{ translateY: -12 }, { scale: 1.06 }] },
+  bottleHeld: { transform: [{ translateY: -10 }, { scale: 1.06 }] },
+  contact: {
+    position: 'absolute',
+    bottom: -4,
+    width: SLOT * 0.42,
+    height: 9,
+    backgroundImage: 'radial-gradient(ellipse at center, rgba(70,40,15,0.45) 0%, rgba(70,40,15,0) 70%)',
+  },
   contactHeld: { opacity: 0.4, transform: [{ scaleX: 0.7 }] },
   drop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'flex-end' },
   dropMark: {
-    width: '58%',
+    width: SLOT * 0.4,
     height: BOTTLE * 0.82,
-    marginBottom: STAND,
     borderRadius: 10,
     borderWidth: 1.5,
     borderStyle: 'dashed',
     borderColor: 'rgba(92,58,20,0.7)',
-    backgroundColor: 'rgba(255,255,255,0.22)',
+    backgroundColor: 'rgba(255,255,255,0.3)',
   },
-  mirrorClip: { position: 'absolute', bottom: 0, width: '84%', height: STAND, overflow: 'hidden' },
-  mirror: { width: '100%', height: BOTTLE, opacity: 0.28, transform: [{ scaleY: -1 }] },
-  contact: {
-    position: 'absolute',
-    bottom: STAND - 5,
-    width: '62%',
-    height: 10,
-    backgroundImage: 'radial-gradient(ellipse at center, rgba(40,20,4,0.6) 0%, rgba(40,20,4,0) 70%)',
-  },
-  ledGlow: { position: 'absolute', top: 0, left: 0, right: 0, height: 34 },
-  led: { position: 'absolute', top: 0, left: 0, right: 0, height: 2, backgroundColor: '#FFFFFF' },
-  glassEdge: { height: EDGE },
-  lip: { flexDirection: 'row', height: LIP, paddingHorizontal: 10, paddingTop: 7, overflow: 'hidden' },
-  memoSlot: { width: SLOT, paddingHorizontal: 4 },
+  lip: { position: 'absolute', flexDirection: 'row', alignItems: 'center' },
+  memoSlot: { width: SLOT, paddingHorizontal: SLOT * 0.12 },
 });

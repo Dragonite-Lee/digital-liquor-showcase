@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { type ComponentRef, useMemo, useRef, useState } from 'react';
@@ -10,13 +10,15 @@ import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { captureRef } from 'react-native-view-shot';
 
-import { arrange, ENTRY, FLOOR, HEADROOM, ROOM_H, roomWidth, UNIT_H, unitLeft } from '@/components/cabinet/layout';
+import { arrange, ROOM_H, roomWidth, unitLeft } from '@/components/cabinet/layout';
 import { MoveContext } from '@/components/cabinet/MoveContext';
 import { Unit } from '@/components/cabinet/Unit';
 import { useRoomView } from '@/components/cabinet/useRoomView';
 import { FilterChips } from '@/components/FilterChips';
 import { useCellar } from '@/store';
-import { color, font, space } from '@/theme';
+import { color, font, paper, space } from '@/theme';
+
+const PAPER = require('../../assets/ui/paper.png');
 
 const buzz = () => {
   if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
@@ -85,20 +87,19 @@ export default function Cabinet() {
   };
 
 
-  const lampCount = Math.ceil((view.fittedWidth * 1.4) / 230) + 1;
-
   return (
     <View style={styles.screen}>
+      <Image source={PAPER} style={StyleSheet.absoluteFill} contentFit="cover" />
       <View style={{ paddingTop: insets.top + space.s }}>
         <View style={styles.head}>
           <Pressable
             onPress={() => router.back()}
             accessibilityRole="button"
-            accessibilityLabel="술장으로 돌아가기"
+            accessibilityLabel="홈으로 돌아가기"
             hitSlop={12}
             style={styles.back}
           >
-            <Ionicons name="chevron-back" size={22} color={color.label} />
+            <Ionicons name="chevron-back" size={24} color={paper.ink} />
           </Pressable>
           <Text style={styles.title}>진열장</Text>
           {Platform.OS === 'web' || bottles.length === 0 ? (
@@ -113,9 +114,9 @@ export default function Cabinet() {
               style={styles.back}
             >
               {sharing ? (
-                <ActivityIndicator color={color.glow} />
+                <ActivityIndicator color={paper.ink} />
               ) : (
-                <Ionicons name="share-outline" size={21} color={moving ? color.mist : color.label} />
+                <Ionicons name="share-outline" size={21} color={moving ? paper.line : paper.ink} />
               )}
             </Pressable>
           )}
@@ -127,17 +128,8 @@ export default function Cabinet() {
         <View style={styles.viewport} onLayout={view.onLayout}>
           {view.ready && (
             <Animated.View ref={roomRef} collapsable={false} style={[styles.room, { width: roomW }, view.roomStyle]}>
-              {/* 벽과 바닥 */}
-              <LinearGradient colors={['#0B1612', '#16291F', '#101E18']} locations={[0, 0.45, 1]} style={styles.wallBack} />
-              <LinearGradient colors={['#2A1A0F', '#120A05']} style={styles.floor} />
-              <View style={styles.skirting} />
-
-              <View style={styles.entry}>
-                <LinearGradient colors={['#D9B56B', '#8C6B2F']} style={styles.plaque}>
-                  <Text style={styles.plaqueTitle}>나의 진열장</Text>
-                  <Text style={styles.plaqueCount}>{bottles.length}병</Text>
-                </LinearGradient>
-              </View>
+              {/* 공유 이미지에도 종이 배경이 들어가도록 방 안에 한 번 더 깐다 */}
+              <Image source={PAPER} style={StyleSheet.absoluteFill} contentFit="cover" />
 
               <MoveContext.Provider value={move}>
                 {units.map((cells, i) => (
@@ -149,19 +141,9 @@ export default function Cabinet() {
             </Animated.View>
           )}
 
-          <Animated.View style={[styles.lamps, view.lampsStyle]} pointerEvents="none">
-            {Array.from({ length: lampCount }, (_, i) => (
-              <View key={i} style={[styles.lamp, { left: 120 + i * 230 }]}>
-                <View style={styles.cord} />
-                <LinearGradient colors={['#E2C078', '#7A5A22']} style={styles.shade} />
-                <View style={styles.lampGlow} />
-              </View>
-            ))}
-          </Animated.View>
-
           <Animated.View style={[styles.reset, { bottom: insets.bottom + (moving ? 84 : space.m) }, view.resetStyle]}>
             <Pressable onPress={view.zoomOut} accessibilityRole="button" style={styles.resetHit}>
-              <Ionicons name="contract-outline" size={16} color={color.labelInk} />
+              <Ionicons name="contract-outline" size={16} color={paper.bg} />
               <Text style={styles.resetLabel}>전체 보기</Text>
             </Pressable>
           </Animated.View>
@@ -193,37 +175,13 @@ export default function Cabinet() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#050B09' },
+  screen: { flex: 1, backgroundColor: paper.bg },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: space.s },
   back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  title: { fontFamily: font.serif, fontSize: 19, color: color.label, letterSpacing: 4 },
+  title: { fontFamily: font.hand, fontSize: 28, color: paper.ink, letterSpacing: 2 },
   unitSpot: { position: 'absolute', top: 0 },
   viewport: { flex: 1, overflow: 'hidden' },
-  room: { position: 'absolute', left: 0, top: 0, height: ROOM_H, transformOrigin: 'left top' },
-  wallBack: { position: 'absolute', left: 0, right: 0, top: 0, height: HEADROOM + UNIT_H },
-  floor: { position: 'absolute', left: 0, right: 0, bottom: 0, height: FLOOR },
-  skirting: { position: 'absolute', left: 0, right: 0, bottom: FLOOR, height: 3, backgroundColor: '#3A2414' },
-  entry: { position: 'absolute', left: 0, top: HEADROOM, width: ENTRY, height: UNIT_H, alignItems: 'center', justifyContent: 'center' },
-  plaque: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 2,
-    alignItems: 'center',
-    boxShadow: '0 4px 10px rgba(0,0,0,0.5)',
-  },
-  plaqueTitle: { fontFamily: font.serifBold, fontSize: 15, color: '#2B1D08', letterSpacing: 2 },
-  plaqueCount: { fontFamily: font.serif, fontSize: 12, color: '#3D2B10', marginTop: 4 },
-  lamps: { position: 'absolute', top: 0, left: 0, height: 80 },
-  lamp: { position: 'absolute', top: 0, alignItems: 'center', width: 30 },
-  cord: { width: 1, height: 22, backgroundColor: 'rgba(201,162,87,0.7)' },
-  shade: { width: 22, height: 9, borderTopLeftRadius: 9, borderTopRightRadius: 9 },
-  lampGlow: {
-    position: 'absolute',
-    top: 4,
-    width: 150,
-    height: 150,
-    backgroundImage: 'radial-gradient(circle, rgba(244,228,184,0.22) 0%, rgba(244,228,184,0) 62%)',
-  },
+  room: { position: 'absolute', left: 0, top: 0, height: ROOM_H, transformOrigin: 'left top', overflow: 'hidden' },
   reset: { position: 'absolute', alignSelf: 'center' },
   resetHit: {
     flexDirection: 'row',
@@ -232,9 +190,9 @@ const styles = StyleSheet.create({
     height: 38,
     paddingHorizontal: 16,
     borderRadius: 19,
-    backgroundColor: color.glow,
+    backgroundColor: paper.ink,
   },
-  resetLabel: { fontFamily: font.serifBold, fontSize: 13, color: color.labelInk },
+  resetLabel: { fontFamily: font.serifBold, fontSize: 13, color: paper.bg },
   moveBar: {
     position: 'absolute',
     left: space.m,
@@ -245,11 +203,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.m,
     paddingVertical: 12,
     borderRadius: 14,
-    backgroundColor: color.glow,
-    boxShadow: '0 8px 20px rgba(0,0,0,0.5)',
+    backgroundColor: '#FFF8EE',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: paper.line,
+    boxShadow: '0 8px 20px rgba(90,60,30,0.2)',
   },
   moveText: { flex: 1, fontFamily: font.serif, fontSize: 13.5, lineHeight: 19, color: color.labelInk },
   moveCancel: { fontFamily: font.serifBold, fontSize: 13.5, color: color.wine },
-  error: { color: '#F0A8A8' },
-  hint: { position: 'absolute', alignSelf: 'center', fontFamily: font.serif, fontSize: 14, color: color.mist },
+  error: { color: color.wine },
+  hint: { position: 'absolute', alignSelf: 'center', fontFamily: font.hand, fontSize: 20, color: paper.inkSoft },
 });

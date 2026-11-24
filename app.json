@@ -6,8 +6,8 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "dark",
-    "backgroundColor": "#0F231D",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#FBEEE0",
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "kr.dragonite.suljang"
@@ -32,9 +32,9 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/splash-icon.png",
-          "imageWidth": 180,
-          "backgroundColor": "#0F231D"
+          "image": "./assets/ui/splash-native.png",
+          "imageWidth": 200,
+          "backgroundColor": "#FBEEE0"
         }
       ],
       [

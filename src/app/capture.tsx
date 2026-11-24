@@ -3,6 +3,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useRef } from 'react';
 import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -33,7 +34,12 @@ export default function Capture() {
   };
 
   if (capture.stage === 'review' && capture.cut) {
-    return <Review capture={capture} cut={capture.cut} onSaved={() => router.back()} />;
+    return (
+      <>
+        <StatusBar style="light" />
+        <Review capture={capture} cut={capture.cut} onSaved={() => router.back()} />
+      </>
+    );
   }
 
   const close = (
@@ -53,6 +59,7 @@ export default function Capture() {
   if (!permission.granted) {
     return (
       <View style={[styles.camera, styles.center]}>
+        <StatusBar style="light" />
         {close}
         <Text style={styles.askTitle}>카메라를 켜야 병을 찍을 수 있어요</Text>
         <Pressable
@@ -71,6 +78,7 @@ export default function Capture() {
 
   return (
     <View style={styles.camera}>
+      <StatusBar style="light" />
       {lifting && capture.photo ? (
         <Image source={{ uri: capture.photo }} style={StyleSheet.absoluteFill} contentFit="cover" />
       ) : (

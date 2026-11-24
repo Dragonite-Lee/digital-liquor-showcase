@@ -2,7 +2,7 @@ import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 
 import { categoryLabel } from '@/lib/categories';
 import { usedCategories, useCellar } from '@/store';
-import { color, font, space } from '@/theme';
+import { font, paper, space } from '@/theme';
 
 /** 모은 술에 있는 종류만 필터로 나온다. 병이 하나도 없으면 숨긴다. */
 export function FilterChips() {
@@ -55,12 +55,12 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(244,228,184,0.35)',
-    backgroundColor: 'rgba(7,17,14,0.35)',
+    borderColor: paper.line,
+    backgroundColor: 'rgba(255,250,242,0.55)',
   },
-  chipOn: { backgroundColor: color.glow, borderColor: color.glow },
-  label: { fontFamily: font.serif, fontSize: 14, color: color.label },
-  labelOn: { color: color.labelInk },
-  count: { fontSize: 12, color: color.mist, fontVariant: ['tabular-nums'] },
-  countOn: { color: color.brassDeep },
+  chipOn: { backgroundColor: paper.ink, borderColor: paper.ink },
+  label: { fontFamily: font.hand, fontSize: 19, color: paper.ink },
+  labelOn: { color: paper.bg },
+  count: { fontSize: 11, color: paper.inkSoft, fontVariant: ['tabular-nums'] },
+  countOn: { color: 'rgba(251,238,224,0.75)' },
 });

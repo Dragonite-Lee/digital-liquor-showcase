@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "main": "expo-router/entry",
   "dependencies": {
+    "@expo-google-fonts/dokdo": "^0.4.1",
     "@expo-google-fonts/gowun-batang": "^0.4.1",
     "@expo-google-fonts/nanum-pen-script": "^0.4.0",
     "@expo/vector-icons": "^15.1.1",

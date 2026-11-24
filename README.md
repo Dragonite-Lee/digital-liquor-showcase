@@ -52,6 +52,18 @@ cp .env.example .env                                     # URL과 publishable �
 
 `.env`를 바꾼 뒤에는 개발 서버를 다시 켠다. URL이 비어 있거나 호출이 실패하면 종류와 이름을 직접 적는다.
 
+## 디자인 에셋
+
+받은 원본은 `design/source/`, 앱이 쓰는 파일은 `assets/ui/`에 있다. 원본을 바꾸면 스크립트로 다시 만든다.
+
+| 파일 | 만드는 방법 |
+|---|---|
+| `shelf.png` + `src/components/cabinet/shelf.json` | `python3 scripts/make-shelf.py [가로 배율] [원목 띠 배율]` — 진열장을 넓히고 칸 좌표를 함께 저장 |
+| `splash.png` | `python3 scripts/make-splash.py` — 실제 상표(라벨 글자·문장·목 메달)를 뭉갬 |
+| `paper.png`, `camera.png`, `cabinet.png` | `python3 scripts/make-ui-assets.py` |
+
+스플래시 문구는 `src/components/Intro.tsx`의 `INTRO_LINES`, 붓글씨 글꼴은 Dokdo(Google Fonts)다.
+
 ## 서버 준비 (익명 로그인·테이블)
 
 앱은 가입 화면 없이 기기마다 익명 사용자로 로그인하고, 함수는 그 사용자 토큰이 있어야 응답한다.

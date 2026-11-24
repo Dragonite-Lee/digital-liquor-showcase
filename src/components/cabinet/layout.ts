@@ -1,30 +1,46 @@
 import type { Bottle } from '@/store';
 
-// 장 한 채: 3칸 × 5단. 병이 늘면 같은 장이 옆으로 이어진다.
+import shelf from './shelf.json';
+
+// 장 한 채 = 수채화 진열장 그림 한 장(assets/ui/shelf.png). 3칸 × 5단, 병이 늘면 같은 장이 옆으로 이어진다.
+// 칸 좌표는 scripts/make-shelf.py가 그림과 함께 만든 shelf.json에서 온다.
 export const COLS = 3;
-export const ROWS = 5;
+export const ROWS = shelf.bays.length;
 export const PER_UNIT = COLS * ROWS;
 
-export const SLOT = 96;
-export const BAY = 138; // 조명 칸 높이
-export const BOTTLE = 106;
-export const GLASS = 22; // 유리 선반 윗면이 보이는 깊이
-export const STAND = 11; // 병이 선반 앞 가장자리에서 떨어진 거리
-export const EDGE = 4;
-export const LIP = 46;
-export const FRAME = 9;
+/** 그림 px → 방 좌표. 방 전체는 화면 높이에 맞춰 다시 확대·축소된다. */
+export const SCALE = 0.62;
+const s = (v: number) => v * SCALE;
 
-export const UNIT_W = SLOT * COLS + 20 + FRAME * 2 + 2;
-export const UNIT_H = (BAY + EDGE + LIP) * ROWS + FRAME * 2 + 2;
-export const GAP = 40;
-export const ENTRY = 170;
-export const TAIL = 90;
-export const HEADROOM = 76; // 장 위 벽
-export const FLOOR = 120;
-export const ROOM_H = HEADROOM + UNIT_H + FLOOR;
+export const IMG_W = s(shelf.width);
+export const IMG_H = s(shelf.height);
+const FRAME_L = s(shelf.frame[0]);
+const FRAME_W = s(shelf.frame[1] - shelf.frame[0]);
+const INNER_L = s(shelf.inner[0]);
+export const INNER_W = s(shelf.inner[1] - shelf.inner[0]);
+export const SLOT = INNER_W / COLS;
 
-export const roomWidth = (unitCount: number) => ENTRY + unitCount * UNIT_W + (unitCount - 1) * GAP + TAIL;
-export const unitLeft = (index: number) => ENTRY + index * (UNIT_W + GAP);
+/** 칸마다 병이 서는 선과 메모지 띠 (그림 안 좌표) */
+export const BAYS = shelf.bays.map((b) => ({
+  top: s(b.top),
+  floor: s(b.floor),
+  lipTop: s(b.lip[0]),
+  lipH: s(b.lip[1] - b.lip[0]),
+}));
+export const INNER_LEFT = INNER_L;
+/** 병 높이: 칸 높이의 78% */
+export const BOTTLE = Math.min(...BAYS.map((b) => b.floor - b.top)) * 0.78;
+
+export const GAP = 36; // 이웃한 장 기둥 사이
+export const ENTRY = 60; // 첫 장 앞 벽
+export const TAIL = 60;
+export const ROOM_H = IMG_H + 24;
+/** 처음 화면에 들어오게 할 너비: 첫 장 전체 + 다음 장이 조금 */
+export const FIT_WIDTH = ENTRY + FRAME_W + GAP + 70;
+
+// 그림 양옆의 투명한 빛 번짐은 이웃 장과 겹쳐도 된다. 자리는 기둥 기준으로 잡는다.
+export const unitLeft = (index: number) => ENTRY - FRAME_L + index * (FRAME_W + GAP);
+export const roomWidth = (unitCount: number) => ENTRY + unitCount * FRAME_W + (unitCount - 1) * GAP + TAIL;
 
 export type Cell = { slot: number; bottle?: Bottle };
 

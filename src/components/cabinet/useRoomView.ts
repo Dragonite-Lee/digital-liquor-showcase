@@ -8,7 +8,7 @@ import {
 } from 'react-native-gesture-handler';
 import { cancelAnimation, useAnimatedStyle, useSharedValue, withDecay, withTiming } from 'react-native-reanimated';
 
-import { ROOM_H } from './layout';
+import { FIT_WIDTH, ROOM_H } from './layout';
 
 const MAX_ZOOM = 3.2;
 const TAP_ZOOM = 2.2;
@@ -17,11 +17,11 @@ const EASE = { duration: 260 };
 /**
  * 진열장 방을 보는 시점. 밀면 걷고(관성 있음), 두 손가락으로 확대하고,
  * 두 번 누르면 그 자리를 확대하거나 전체 보기로 돌아온다.
- * 배율 1은 장 전체가 세로로 한눈에 들어오는 크기다.
+ * 배율 1은 장 한 채가 통째로 보이고 다음 장이 살짝 비치는 크기다(세로가 모자라면 세로에 맞춘다).
  */
 export function useRoomView(roomW: number) {
   const [view, setView] = useState({ w: 0, h: 0 });
-  const fit = view.h ? view.h / ROOM_H : 1;
+  const fit = view.h ? Math.min(view.h / ROOM_H, view.w / FIT_WIDTH) : 1;
   const viewW = view.w;
   const viewH = view.h;
 
@@ -29,7 +29,7 @@ export function useRoomView(roomW: number) {
   const tx = useSharedValue(0);
   const ty = useSharedValue(0);
 
-  // 방이 화면보다 작으면 가운데에, 크면 가장자리 밖으로 밀려나지 않게
+  // 방이 화면보다 작으면 가로는 가운데·세로는 위에 붙이고, 크면 가장자리 밖으로 밀려나지 않게
   const boundX = (x: number, z: number) => {
     'worklet';
     const w = roomW * fit * z;
@@ -38,7 +38,7 @@ export function useRoomView(roomW: number) {
   const boundY = (y: number, z: number) => {
     'worklet';
     const h = ROOM_H * fit * z;
-    return h <= viewH ? (viewH - h) / 2 : Math.min(0, Math.max(viewH - h, y));
+    return h <= viewH ? 0 : Math.min(0, Math.max(viewH - h, y));
   };
   const stop = () => {
     'worklet';
@@ -95,12 +95,6 @@ export function useRoomView(roomW: number) {
     transform: [{ translateX: tx.value }, { translateY: ty.value }, { scale: fit * zoom.value }],
   }));
 
-  // 앞쪽에 걸린 펜던트 조명은 벽보다 빨리 지나가 걷는 느낌을 준다. 확대하면 가리지 않게 사라진다.
-  const lampsStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: tx.value * 1.4 }],
-    opacity: Math.max(0, 1 - (zoom.value - 1) * 2.5),
-  }));
-
   // "전체 보기" 버튼은 확대했을 때만 보인다
   const resetStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, Math.max(0, (zoom.value - 1.05) * 6)) }));
 
@@ -117,11 +111,8 @@ export function useRoomView(roomW: number) {
 
   return {
     ready: view.h > 0,
-    /** 펜던트 조명을 몇 개 걸지 정할 때 쓰는, 배율 1에서의 방 너비(px) */
-    fittedWidth: roomW * fit,
     gesture,
     roomStyle,
-    lampsStyle,
     resetStyle,
     zoomOut,
     onLayout,

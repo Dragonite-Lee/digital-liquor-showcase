@@ -1,20 +1,25 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useEffect, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BarLights } from '@/components/BarLights';
 import { FilterChips } from '@/components/FilterChips';
 import { FloatingField } from '@/components/FloatingField';
 import { illustrateEnabled } from '@/lib/illustrate';
 import { sampleBottles } from '@/lib/samples';
 import { NUDGE_AFTER_BOTTLES, themeOf } from '@/lib/themes';
 import { useCellar } from '@/store';
-import { color, font, space } from '@/theme';
+import { color, font, paper, space } from '@/theme';
+
+const PAPER = require('../../assets/ui/paper.png');
+const CAMERA = require('../../assets/ui/camera.png');
+const CABINET = require('../../assets/ui/cabinet.png');
+
+/** 앱 이름 (홈 제목) */
+export const APP_TITLE = '호가술병';
 
 const openBottle = (id: string) => router.push({ pathname: '/bottle/[id]', params: { id } });
 
@@ -50,7 +55,7 @@ export default function Home() {
 
   return (
     <View style={styles.screen}>
-      <BarLights />
+      <Image source={PAPER} style={StyleSheet.absoluteFill} contentFit="cover" />
 
       {/* 병은 머리글과 버튼 뒤까지 화면 전체를 떠다닌다 */}
       <View style={[StyleSheet.absoluteFill, { top: insets.top + 96, bottom: insets.bottom + 96 }]}>
@@ -63,18 +68,16 @@ export default function Home() {
 
       <View style={{ paddingTop: insets.top + space.s }} pointerEvents="box-none">
         <View style={styles.head}>
-          <Text style={styles.title}>술장</Text>
-          {bottles.length > 0 && <Text style={styles.total}>{bottles.length}병</Text>}
+          <Text style={styles.title} accessibilityRole="header">
+            {APP_TITLE}
+          </Text>
         </View>
         <FilterChips />
       </View>
 
       {bottles.length === 0 && (
         <View style={styles.empty} pointerEvents="box-none">
-          <Text style={styles.emptyTitle}>아직 빈 술장이에요</Text>
-          <Text style={styles.emptyBody}>
-            버리기 아까운 병을 찍어 보세요.{'\n'}병만 떼어 내 여기에 띄워 둘게요.
-          </Text>
+          <Text style={styles.emptyBody}>아직 비어있어요{'\n'}기록하고 싶었던 술병을 찍어보세요</Text>
           {__DEV__ && (
             <Pressable onPress={() => addMany(sampleBottles())} accessibilityRole="button" style={styles.dev}>
               <Text style={styles.devLabel}>개발용: 샘플 병 18개 채우기</Text>
@@ -130,18 +133,14 @@ export default function Home() {
         </Animated.View>
       )}
 
-      <LinearGradient
-        colors={['rgba(4,10,8,0)', 'rgba(4,10,8,0.9)']}
-        style={[styles.dock, { paddingBottom: insets.bottom + space.m }]}
-        pointerEvents="box-none"
-      >
+      <View style={[styles.dock, { paddingBottom: insets.bottom + space.s }]} pointerEvents="box-none">
         <Pressable
           onPress={() => router.push('/cabinet')}
           accessibilityRole="button"
           accessibilityLabel="진열장 열기"
           style={({ pressed }) => [styles.side, pressed && styles.pressed]}
         >
-          <Ionicons name="albums-outline" size={22} color={color.glow} />
+          <Image source={CABINET} style={styles.cabinetIcon} contentFit="contain" />
           <Text style={styles.sideLabel}>진열장</Text>
         </Pressable>
 
@@ -151,43 +150,33 @@ export default function Home() {
           accessibilityLabel="술병 찍기"
           style={({ pressed }) => [styles.shutter, pressed && styles.pressed]}
         >
-          <View style={styles.shutterCore}>
-            <Ionicons name="camera-outline" size={24} color={color.labelInk} />
-          </View>
+          <Image source={CAMERA} style={styles.shutterArt} contentFit="contain" />
         </Pressable>
 
         <View style={styles.side} />
-      </LinearGradient>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: color.ink },
-  head: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'space-between',
-    paddingHorizontal: space.l,
-    paddingBottom: space.xs,
-  },
-  title: { fontFamily: font.serif, fontSize: 28, color: color.label, letterSpacing: 6 },
-  total: { fontFamily: font.serif, fontSize: 14, color: color.brass, letterSpacing: 1 },
+  screen: { flex: 1, backgroundColor: paper.bg },
+  head: { alignItems: 'center', paddingTop: space.m, paddingBottom: space.xs },
+  title: { fontFamily: font.hand, fontSize: 30, color: paper.ink, letterSpacing: 2 },
   empty: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.xl },
-  emptyTitle: { fontFamily: font.serifBold, fontSize: 21, color: color.label, marginBottom: space.s },
-  emptyBody: { fontFamily: font.serif, fontSize: 15, lineHeight: 24, color: color.mist, textAlign: 'center' },
+  emptyBody: { fontFamily: font.hand, fontSize: 22, lineHeight: 30, color: paper.ink, textAlign: 'center' },
   dev: {
     marginTop: space.l,
     paddingHorizontal: 14,
     height: 34,
     borderRadius: 17,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: color.mist,
+    borderColor: paper.inkSoft,
     borderStyle: 'dashed',
     justifyContent: 'center',
   },
   devCorner: { position: 'absolute', right: space.l, marginTop: 0, zIndex: 3 },
-  devLabel: { fontSize: 12, color: color.mist },
+  devLabel: { fontSize: 12, color: paper.inkSoft },
   nudge: {
     position: 'absolute',
     left: space.m,
@@ -198,8 +187,10 @@ const styles = StyleSheet.create({
     padding: 10,
     paddingRight: space.m,
     borderRadius: 16,
-    backgroundColor: color.glow,
-    boxShadow: '0 10px 24px rgba(0,0,0,0.5)',
+    backgroundColor: '#FFF8EE',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: paper.line,
+    boxShadow: '0 8px 20px rgba(90,60,30,0.18)',
     zIndex: 5,
   },
   nudgeHit: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.m },
@@ -215,40 +206,25 @@ const styles = StyleSheet.create({
     height: 38,
     borderRadius: 19,
     justifyContent: 'center',
-    backgroundColor: color.glow,
-    boxShadow: '0 6px 18px rgba(0,0,0,0.45)',
+    backgroundColor: paper.ink,
+    boxShadow: '0 6px 16px rgba(90,60,30,0.25)',
     zIndex: 4,
   },
-  toastText: { fontFamily: font.serifBold, fontSize: 14, color: color.labelInk },
+  toastText: { fontFamily: font.serifBold, fontSize: 14, color: paper.bg },
   dock: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    paddingTop: 64,
     paddingHorizontal: space.l,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
   },
-  side: { width: 72, alignItems: 'center', gap: 5 },
-  sideLabel: { fontFamily: font.serif, fontSize: 12, color: color.glow, letterSpacing: 1 },
-  shutter: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    borderWidth: 1,
-    borderColor: color.brass,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  shutterCore: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: color.glow,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  side: { width: 72, alignItems: 'center', gap: 2, paddingBottom: 6 },
+  cabinetIcon: { width: 46, height: 34 },
+  sideLabel: { fontFamily: font.hand, fontSize: 18, color: paper.ink },
+  shutter: { width: 78, height: 78, alignItems: 'center', justifyContent: 'center' },
+  shutterArt: { width: 78, height: 78 },
   pressed: { opacity: 0.6 },
 });
