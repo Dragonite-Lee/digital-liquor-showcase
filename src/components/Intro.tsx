@@ -97,7 +97,7 @@ export function Intro({ onDone }: { onDone: () => void }) {
         accessibilityLabel={`${INTRO_LINES.join(' ')}. 눌러서 시작하기`}
       >
         <Image source={SPLASH} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition="bottom" />
-        <View style={[styles.words, { top: insets.top + 160 }]}>
+        <View style={[styles.words, { top: insets.top + 178 }]}>
           {INTRO_LINES.map((line, i) => (
             <BrushLine key={line} text={line} delay={i * (STROKE + PAUSE) + 180} still={still} />
           ))}
@@ -109,8 +109,8 @@ export function Intro({ onDone }: { onDone: () => void }) {
 
 const styles = StyleSheet.create({
   screen: { backgroundColor: paper.bg, zIndex: 100 },
-  words: { position: 'absolute', left: 0, right: 0, alignItems: 'center', gap: 6 },
-  line: { fontFamily: font.hand, fontSize: 50, lineHeight: 62, color: paper.ink, textAlign: 'left' },
+  words: { position: 'absolute', left: 0, right: 0, alignItems: 'center', gap: 2 },
+  line: { fontFamily: font.hand, fontSize: 38, lineHeight: 50, color: paper.ink, textAlign: 'left' },
   ghost: { opacity: 0 },
   inked: { flexShrink: 0 },
   clip: { position: 'absolute', top: 0, left: 0, bottom: 0, overflow: 'hidden' },

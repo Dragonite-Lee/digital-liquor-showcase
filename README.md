@@ -62,7 +62,7 @@ cp .env.example .env                                     # URL과 publishable �
 | `splash.png` | `python3 scripts/make-splash.py` — 실제 상표(라벨 글자·문장·목 메달)를 뭉갬 |
 | `paper.png`, `camera.png`, `cabinet.png` | `python3 scripts/make-ui-assets.py` |
 
-스플래시 문구는 `src/components/Intro.tsx`의 `INTRO_LINES`, 붓글씨 글꼴은 Dokdo(Google Fonts)다.
+스플래시 문구는 `src/components/Intro.tsx`의 `INTRO_LINES`, 손글씨 글꼴은 `assets/fonts/SongleSongeulHeullim.ttf`(그리운X국한박 송글손글 감성 흘림체, 파일 수정 금지)다.
 
 ## 서버 준비 (익명 로그인·테이블)
 

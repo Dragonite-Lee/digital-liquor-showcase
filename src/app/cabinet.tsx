@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: paper.bg },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: space.s },
   back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  title: { fontFamily: font.hand, fontSize: 28, color: paper.ink, letterSpacing: 2 },
+  title: { fontFamily: font.hand, fontSize: 22, color: paper.ink, letterSpacing: 1 },
   unitSpot: { position: 'absolute', top: 0 },
   viewport: { flex: 1, overflow: 'hidden' },
   room: { position: 'absolute', left: 0, top: 0, height: ROOM_H, transformOrigin: 'left top', overflow: 'hidden' },
@@ -211,5 +211,5 @@ const styles = StyleSheet.create({
   moveText: { flex: 1, fontFamily: font.serif, fontSize: 13.5, lineHeight: 19, color: color.labelInk },
   moveCancel: { fontFamily: font.serifBold, fontSize: 13.5, color: color.wine },
   error: { color: color.wine },
-  hint: { position: 'absolute', alignSelf: 'center', fontFamily: font.hand, fontSize: 20, color: paper.inkSoft },
+  hint: { position: 'absolute', alignSelf: 'center', fontFamily: font.hand, fontSize: 16, color: paper.inkSoft },
 });

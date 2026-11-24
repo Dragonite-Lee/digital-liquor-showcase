@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,250,242,0.55)',
   },
   chipOn: { backgroundColor: paper.ink, borderColor: paper.ink },
-  label: { fontFamily: font.hand, fontSize: 19, color: paper.ink },
+  label: { fontFamily: font.hand, fontSize: 15, color: paper.ink },
   labelOn: { color: paper.bg },
   count: { fontSize: 11, color: paper.inkSoft, fontVariant: ['tabular-nums'] },
   countOn: { color: 'rgba(251,238,224,0.75)' },

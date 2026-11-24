@@ -162,9 +162,9 @@ export default function Home() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: paper.bg },
   head: { alignItems: 'center', paddingTop: space.m, paddingBottom: space.xs },
-  title: { fontFamily: font.hand, fontSize: 30, color: paper.ink, letterSpacing: 2 },
+  title: { fontFamily: font.hand, fontSize: 22, color: paper.ink, letterSpacing: 1 },
   empty: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.xl },
-  emptyBody: { fontFamily: font.hand, fontSize: 22, lineHeight: 30, color: paper.ink, textAlign: 'center' },
+  emptyBody: { fontFamily: font.hand, fontSize: 16, lineHeight: 23, color: paper.ink, textAlign: 'center' },
   dev: {
     marginTop: space.l,
     paddingHorizontal: 14,
@@ -222,8 +222,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   side: { width: 72, alignItems: 'center', gap: 2, paddingBottom: 6 },
-  cabinetIcon: { width: 46, height: 34 },
-  sideLabel: { fontFamily: font.hand, fontSize: 18, color: paper.ink },
+  cabinetIcon: { width: 44, height: 32 },
+  sideLabel: { fontFamily: font.hand, fontSize: 14, color: paper.ink },
   shutter: { width: 78, height: 78, alignItems: 'center', justifyContent: 'center' },
   shutterArt: { width: 78, height: 78 },
   pressed: { opacity: 0.6 },

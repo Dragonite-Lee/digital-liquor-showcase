@@ -1,4 +1,3 @@
-import { Dokdo_400Regular } from '@expo-google-fonts/dokdo';
 import { GowunBatang_400Regular, GowunBatang_700Bold } from '@expo-google-fonts/gowun-batang';
 import { NanumPenScript_400Regular } from '@expo-google-fonts/nanum-pen-script';
 import { useFonts } from 'expo-font';
@@ -18,7 +17,13 @@ import { color, paper } from '@/theme';
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
-  const [ready] = useFonts({ GowunBatang_400Regular, GowunBatang_700Bold, NanumPenScript_400Regular, Dokdo_400Regular });
+  const [ready] = useFonts({
+    GowunBatang_400Regular,
+    GowunBatang_700Bold,
+    NanumPenScript_400Regular,
+    // 그리운X국한박 송글손글 감성 흘림체 — 라이선스 https://www.griun.co.kr/license (폰트 파일 수정 금지)
+    SongleSongeul: require('../../assets/fonts/SongleSongeulHeullim.ttf'),
+  });
   const [intro, setIntro] = useState(true);
 
   // 첫 촬영 전에 미리 익명 로그인해 둔다 (실패해도 앱은 그대로 쓴다)

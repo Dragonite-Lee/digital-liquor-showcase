@@ -27,8 +27,8 @@ export const font = {
   serif: 'GowunBatang_400Regular',
   serifBold: 'GowunBatang_700Bold',
   pen: 'NanumPenScript_400Regular',
-  /** 붓글씨 — 스플래시 문구, 홈·진열장 제목과 안내 */
-  hand: 'Dokdo_400Regular',
+  /** 손글씨 흘림체 — 스플래시 문구, 홈·진열장 제목과 안내 (한글 2,780자 범위라 사용자가 쓴 글에는 쓰지 않는다) */
+  hand: 'SongleSongeul',
 } as const;
 
 export const space = { xs: 4, s: 8, m: 16, l: 24, xl: 40 } as const;
