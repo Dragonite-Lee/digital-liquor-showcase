@@ -75,7 +75,7 @@
 - [x] 로그인 화면: iOS Apple·Google, Android Google. 익명 사용자에 계정을 연결(linkIdentity)해 id 유지, 이미 다른 사용자 것이면 그 사용자로 로그인
 - [x] 처음 실행 때 한 번 노출, "나중에 할게요" 가능 (로그인 강제는 심사 가이드라인 5.1.1 위험이 있어 하지 않음)
 - [x] 앱 안 계정 삭제 (`delete-account` 함수, 심사 요구사항 5.1.1(v))
-- [ ] Supabase·Google Cloud 설정 (README "로그인")
+- [x] Supabase·Google Cloud·Apple 설정, 폰에서 Apple·Google 로그인 확인
 
 ### 3단계: 결제 (RevenueCat)
 
