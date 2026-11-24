@@ -17,7 +17,11 @@ export const color = {
 // 수채화 종이: 스플래시·홈·진열장
 export const paper = {
   bg: '#FBEEE0',
-  ink: '#3A2F2A',
+  ink: '#413836',
+  /** 강조("한 번 무료" 등) */
+  accent: '#522213',
+  /** 촬영 화면 위 밝은 글씨 */
+  cream: '#FEF4E7',
   inkSoft: '#6E5D52',
   line: 'rgba(58,47,42,0.22)',
   wash: 'rgba(251,238,224,0.86)',

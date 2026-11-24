@@ -134,7 +134,7 @@ export default function Home() {
             <Image source={themeOf('vangogh').preview} style={styles.nudgeThumb} contentFit="cover" />
             <View style={styles.nudgeCopy}>
               <Text style={styles.nudgeTitle}>{nudgeTarget.name || '방금 담은 병'}, 고흐 화풍으로 그려 볼까요?</Text>
-              <Text style={styles.nudgeBody}>모네·고흐·크레용, 테마마다 한 번은 무료예요</Text>
+              <Text style={styles.nudgeBody}>인상주의·유화·크레용, 테마마다 한 번은 무료예요</Text>
             </View>
           </Pressable>
           <Pressable onPress={markNudged} accessibilityRole="button" accessibilityLabel="권유 닫기" hitSlop={10}>

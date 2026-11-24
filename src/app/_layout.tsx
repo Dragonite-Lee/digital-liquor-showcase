@@ -59,7 +59,7 @@ export default function RootLayout() {
             name="capture"
             options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom', contentStyle: { backgroundColor: color.glass } }}
           />
-          <Stack.Screen name="bottle/[id]" options={{ presentation: 'modal', contentStyle: { backgroundColor: color.glass } }} />
+          <Stack.Screen name="bottle/[id]" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
           <Stack.Screen name="login" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
         </Stack>
         {intro && <Intro onDone={afterIntro} />}

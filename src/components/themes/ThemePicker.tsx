@@ -1,11 +1,10 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { isUnlocked } from '@/lib/purchases';
 import { THEMES, type ThemeId } from '@/lib/themes';
 import { useCellar } from '@/store';
-import { color, font, space } from '@/theme';
+import { font, paper } from '@/theme';
 
 type Props = {
   value: ThemeId | null;
@@ -14,60 +13,66 @@ type Props = {
   onSelect: (id: ThemeId) => void;
 };
 
-/** 그림 테마 고르기. 잠긴 테마는 자물쇠, 무료 체험이 남아 있으면 "한 번 무료". */
+/**
+ * 그림 테마 고르기 (피그마 "테마를 선택해 주세요"): 네 장의 카드가 한 줄에.
+ * 고른 카드는 흰 바탕, 잠긴 테마는 "한 번 무료"(체험 남음) 또는 "열기"(체험 씀).
+ */
 export function ThemePicker({ value, busy, onSelect }: Props) {
   const owned = useCellar((s) => s.ownedThemes);
   const trials = useCellar((s) => s.trialsUsed);
 
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+    <View style={styles.row}>
       {THEMES.map((t) => {
         const open = isUnlocked(t.id, owned);
         const on = value === t.id;
+        const note = open ? null : trials.includes(t.id) ? '열기' : '한 번 무료';
         return (
           <Pressable
             key={t.id}
             onPress={() => onSelect(t.id)}
             accessibilityRole="button"
-            accessibilityState={{ selected: on }}
-            accessibilityLabel={`${t.label} 테마${open ? '' : ', 잠김'}`}
-            style={[styles.card, on && styles.cardOn]}
+            accessibilityState={{ selected: on, busy: busy === t.id }}
+            accessibilityLabel={`${t.label} 테마${note ? `, ${note}` : ''}`}
+            style={({ pressed }) => [styles.card, on ? styles.cardOn : styles.cardOff, pressed && styles.pressed]}
           >
-            <View style={styles.thumbWrap}>
-              <Image source={t.preview} style={styles.thumb} contentFit="cover" />
+            <View style={styles.thumb}>
+              {/* 미리보기는 3:4 그림의 위쪽(병 머리)이 원 안에 오게 */}
+              <Image source={t.preview} style={styles.thumbImage} contentFit="cover" />
               {busy === t.id && (
                 <View style={styles.busy}>
-                  <ActivityIndicator color={color.glow} size="small" />
-                </View>
-              )}
-              {!open && (
-                <View style={styles.lock}>
-                  <Ionicons name="lock-closed" size={11} color={color.labelInk} />
+                  <ActivityIndicator color={paper.cream} size="small" />
                 </View>
               )}
             </View>
-            <Text style={[styles.label, on && styles.labelOn]}>{t.label}</Text>
-            {!open && !trials.includes(t.id) && <Text style={styles.trial}>한 번 무료</Text>}
+            <View style={styles.text}>
+              <Text style={styles.label}>{t.label}</Text>
+              {note && <Text style={styles.note}>{note}</Text>}
+            </View>
           </Pressable>
         );
       })}
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: { gap: space.s, paddingVertical: space.xs },
+  row: { flexDirection: 'row', justifyContent: 'space-between' },
   card: {
-    width: 76,
+    width: 80,
+    height: 120,
+    paddingTop: 12,
+    gap: 8,
     alignItems: 'center',
-    paddingVertical: 8,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: color.glassLine,
+    borderWidth: 2,
+    borderColor: paper.ink,
   },
-  cardOn: { borderColor: color.glow, backgroundColor: 'rgba(244,228,184,0.08)' },
-  thumbWrap: { width: 48, height: 64, borderRadius: 6, overflow: 'hidden' },
-  thumb: { width: '100%', height: '100%' },
+  cardOn: { backgroundColor: 'rgba(255,255,255,0.5)' },
+  cardOff: { opacity: 0.8 },
+  pressed: { opacity: 0.5 },
+  thumb: { width: 50, height: 50, borderRadius: 25, overflow: 'hidden' },
+  thumbImage: { width: 50, height: 66.667 },
   busy: {
     position: 'absolute',
     top: 0,
@@ -76,20 +81,9 @@ const styles = StyleSheet.create({
     bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(7,17,14,0.5)',
+    backgroundColor: 'rgba(65,56,54,0.45)',
   },
-  lock: {
-    position: 'absolute',
-    right: 3,
-    top: 3,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: color.glow,
-  },
-  label: { fontFamily: font.serif, fontSize: 13, color: color.label, marginTop: 6 },
-  labelOn: { fontFamily: font.serifBold, color: color.glow },
-  trial: { fontSize: 10, color: color.brass, marginTop: 2 },
+  text: { width: 64, gap: 4, alignItems: 'center' },
+  label: { fontFamily: font.hand, fontSize: 14, color: paper.ink, textAlign: 'center' },
+  note: { fontFamily: font.hand, fontSize: 13, color: paper.accent, textAlign: 'center' },
 });

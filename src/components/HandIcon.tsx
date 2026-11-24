@@ -4,6 +4,8 @@ const ICONS = {
   back: require('../../assets/ui/icon-back.png'),
   close: require('../../assets/ui/icon-close.png'),
   share: require('../../assets/ui/icon-share.png'),
+  pen: require('../../assets/ui/icon-pen.png'),
+  trash: require('../../assets/ui/icon-trash.png'),
 } as const;
 
 /** 손그림 아이콘. 어두운 화면에서는 tint로 밝게 칠한다. */

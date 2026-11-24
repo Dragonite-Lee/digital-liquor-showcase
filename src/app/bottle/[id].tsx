@@ -1,28 +1,34 @@
-import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { HandIcon } from '@/components/HandIcon';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { CategoryPicker } from '@/components/CategoryPicker';
 import { BottleImage } from '@/components/BottleImage';
-import { Halo } from '@/components/Halo';
-import { NotePaper } from '@/components/NotePaper';
+import { CategoryPicker } from '@/components/CategoryPicker';
+import {
+  formStyles,
+  MemoBox,
+  NameField,
+  PaperScreen,
+  SectionTitle,
+  SmallText,
+  UnderlineButton,
+} from '@/components/bottle/parts';
 import { ThemePicker } from '@/components/themes/ThemePicker';
 import { ThemeSheet } from '@/components/themes/ThemeSheet';
 import { illustrateBottle, illustrateEnabled } from '@/lib/illustrate';
+import { dropImage, imageUri, keepImage } from '@/lib/images';
 import { isUnlocked } from '@/lib/purchases';
 import { themeOf, type ThemeId } from '@/lib/themes';
-import { dropImage, imageUri, keepImage } from '@/lib/images';
 import { useCellar } from '@/store';
-import { color, font, space } from '@/theme';
+import { font, paper } from '@/theme';
 
 const dateText = (ms: number) => {
   const d = new Date(ms);
   return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일에 담음`;
 };
 
+/** 병 상세 (피그마 "술병 진열하기") */
 export default function BottleDetail() {
   const { id, try: tryTheme } = useLocalSearchParams<{ id: string; try?: ThemeId }>();
   const insets = useSafeAreaInsets();
@@ -37,9 +43,11 @@ export default function BottleDetail() {
 
   if (!bottle) {
     return (
-      <View style={[styles.screen, styles.gone]}>
-        <Text style={styles.date}>진열장에서 뺀 병이에요.</Text>
-      </View>
+      <PaperScreen title="술병 진열하기" onClose={() => router.back()}>
+        <View style={styles.gone}>
+          <Text style={styles.goneText}>진열장에서 뺀 병이에요.</Text>
+        </View>
+      </PaperScreen>
     );
   }
 
@@ -79,57 +87,51 @@ export default function BottleDetail() {
       remove(bottle.id);
     };
     if (Platform.OS === 'web') return go();
-    Alert.alert('진열장에서 뺄까요?', '사진과 메모가 함께 지워져요.', [
+    Alert.alert('진열장에서 뺄까요?', '사진과 기록이 함께 지워져요.', [
       { text: '그대로 두기', style: 'cancel' },
-      { text: '진열장에서 빼기', style: 'destructive', onPress: go },
+      { text: '삭제하기', style: 'destructive', onPress: go },
     ]);
   };
 
   return (
-    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView
-        contentContainerStyle={{ padding: space.l, paddingBottom: insets.bottom + space.xl }}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.bar}>
-          <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="닫기" hitSlop={12}>
-            <HandIcon name="close" size={28} tint={color.label} />
-          </Pressable>
-          <Pressable onPress={confirmRemove} accessibilityRole="button" accessibilityLabel="진열장에서 빼기" hitSlop={12}>
-            <Ionicons name="trash-outline" size={22} color={color.mist} />
-          </Pressable>
-        </View>
-
-        <View style={styles.stage}>
-          <Halo style={styles.halo} />
-          <BottleImage bottle={bottle} style={styles.image} />
-        </View>
-
-        {illustrateEnabled && (
-          <View style={styles.themes}>
-            <Text style={styles.themesTitle}>
-              {painting ? `${themeOf(painting).label}(으)로 그리는 중…` : '다른 화풍으로 다시 그리기'}
-            </Text>
-            <ThemePicker value={bottle.art ? (bottle.theme ?? 'watercolor') : null} busy={painting} onSelect={pickTheme} />
+    <PaperScreen title="술병 진열하기" onClose={() => router.back()}>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 32 }} keyboardShouldPersistTaps="handled">
+          <View style={[formStyles.stage, styles.stage]}>
+            <BottleImage bottle={bottle} style={formStyles.bottle} />
           </View>
-        )}
-        {paintError && <Text style={styles.paintError}>그리지 못했어요. 잠시 뒤 다시 눌러 주세요.{__DEV__ ? `\n${paintError}` : ''}</Text>}
 
-        <TextInput
-          value={bottle.name}
-          onChangeText={(name) => update(bottle.id, { name })}
-          placeholder="병 이름"
-          placeholderTextColor={color.mist}
-          style={styles.name}
-          accessibilityLabel="병 이름"
-          multiline
-        />
-        <Text style={styles.date}>{dateText(bottle.createdAt)}</Text>
+          <View style={formStyles.body}>
+            {illustrateEnabled && (
+              <View style={formStyles.option}>
+                <SectionTitle>
+                  {painting ? `${themeOf(painting).label}(으)로 그리는 중…` : '테마를 선택해 주세요'}
+                </SectionTitle>
+                <ThemePicker value={bottle.art ? (bottle.theme ?? 'watercolor') : null} busy={painting} onSelect={pickTheme} />
+                {paintError && (
+                  <SmallText tone="accent">
+                    그리지 못했어요. 잠시 뒤 다시 눌러 주세요.{__DEV__ ? `\n${paintError}` : ''}
+                  </SmallText>
+                )}
+              </View>
+            )}
 
-        <CategoryPicker value={bottle.category} onChange={(category) => update(bottle.id, { category })} />
+            <View style={formStyles.option}>
+              <NameField value={bottle.name} onChange={(name) => update(bottle.id, { name })} />
+              <SmallText>{dateText(bottle.createdAt)}</SmallText>
+            </View>
 
-        <NotePaper value={bottle.memo} onChangeText={(memo) => update(bottle.id, { memo })} />
-      </ScrollView>
+            <View style={formStyles.option}>
+              <SectionTitle>주종을 선택해 주세요</SectionTitle>
+              <CategoryPicker value={bottle.category} onChange={(category) => update(bottle.id, { category })} />
+            </View>
+
+            <MemoBox value={bottle.memo} onChange={(memo) => update(bottle.id, { memo })} />
+
+            <UnderlineButton label="삭제하기" onPress={confirmRemove} hint="진열장에서 이 병을 뺍니다" />
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
       <ThemeSheet
         theme={locked}
         onClose={() => setLocked(null)}
@@ -138,20 +140,14 @@ export default function BottleDetail() {
           paint(theme);
         }}
       />
-    </KeyboardAvoidingView>
+    </PaperScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: color.glass },
-  gone: { alignItems: 'center', justifyContent: 'center' },
-  bar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  stage: { height: 340, alignItems: 'center', justifyContent: 'flex-end', marginTop: space.s, marginBottom: space.l },
-  halo: { bottom: 20 },
-  image: { width: '70%', height: 320 },
-  themes: { marginBottom: space.l },
-  themesTitle: { fontFamily: font.serif, fontSize: 13, color: color.mist, marginBottom: space.s },
-  paintError: { fontFamily: font.serif, fontSize: 12, color: '#F0A8A8', textAlign: 'center', marginTop: -space.m, marginBottom: space.l },
-  name: { fontFamily: font.serifBold, fontSize: 26, lineHeight: 34, color: color.label, padding: 0 },
-  date: { fontFamily: font.serif, fontSize: 13, color: color.mist, marginTop: 6, marginBottom: space.m },
+  flex: { flex: 1 },
+  // 피그마: 헤더 아래 병 그림이 바로 시작
+  stage: { marginTop: 14 },
+  gone: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  goneText: { fontFamily: font.hand, fontSize: 16, color: paper.ink },
 });

@@ -18,7 +18,7 @@ export const illustrateEnabled = !!URL && Platform.OS !== 'web';
 export type Art = { uri: string; stickerUri?: string; width: number; height: number };
 
 /**
- * 병 사진을 테마(수채화·모네·고흐·크레용) 그림으로 다시 그린다.
+ * 병 사진을 테마(수채화·인상주의·유화·크레용) 그림으로 다시 그린다.
  * 받은 그림(흰 배경)에서 다시 병만 떼어 내 투명 배경으로 만든다. 떼어 내기를 못 하면 흰 배경 그림 그대로.
  * @param png 투명 배경 누끼(PNG)를 보낼 때 true. 원본 사진은 JPEG로 보낸다.
  */

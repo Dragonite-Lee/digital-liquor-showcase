@@ -82,7 +82,7 @@ export function ThemeSheet({ theme, onClose, onReady }: Props) {
           {buying === 'all' ? (
             <ActivityIndicator color={color.glow} />
           ) : (
-            <Text style={styles.secondaryLabel}>모네·고흐·크레용 모두 열기 · {PRICE.all}</Text>
+            <Text style={styles.secondaryLabel}>인상주의·유화·크레용 모두 열기 · {PRICE.all}</Text>
           )}
         </Pressable>
         <Pressable onPress={onClose} accessibilityRole="button" style={styles.later}>

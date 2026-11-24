@@ -24,7 +24,7 @@ export const THEMES: Theme[] = [
   },
   {
     id: 'monet',
-    label: '모네',
+    label: '인상주의',
     blurb: '빛이 부서지는 인상파 유화',
     preview: require('../../assets/themes/monet.jpg'),
     included: false,
@@ -32,7 +32,7 @@ export const THEMES: Theme[] = [
   },
   {
     id: 'vangogh',
-    label: '고흐',
+    label: '유화',
     blurb: '소용돌이치는 두꺼운 붓질',
     preview: require('../../assets/themes/vangogh.jpg'),
     included: false,

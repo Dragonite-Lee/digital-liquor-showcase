@@ -1,8 +1,9 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CATEGORIES, type CategoryId } from '@/lib/categories';
-import { color, font } from '@/theme';
+import { font, paper } from '@/theme';
 
+/** 주종 고르기 (피그마 "주종을 선택해 주세요"): 연필 테두리 알약, 고른 것은 흰 바탕 */
 export function CategoryPicker({ value, onChange }: { value: CategoryId; onChange: (id: CategoryId) => void }) {
   return (
     <View style={styles.wrap} accessibilityRole="radiogroup" accessibilityLabel="술 종류">
@@ -14,9 +15,10 @@ export function CategoryPicker({ value, onChange }: { value: CategoryId; onChang
             onPress={() => onChange(c.id)}
             accessibilityRole="radio"
             accessibilityState={{ selected: on }}
-            style={[styles.chip, on && styles.chipOn]}
+            hitSlop={4}
+            style={({ pressed }) => [styles.chip, on ? styles.chipOn : styles.chipOff, pressed && styles.pressed]}
           >
-            <Text style={[styles.label, on && styles.labelOn]}>{c.label}</Text>
+            <Text style={styles.label}>{c.label}</Text>
           </Pressable>
         );
       })}
@@ -27,14 +29,16 @@ export function CategoryPicker({ value, onChange }: { value: CategoryId; onChang
 const styles = StyleSheet.create({
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
-    paddingHorizontal: 13,
-    height: 34,
-    borderRadius: 17,
-    borderWidth: 1,
-    borderColor: color.glassLine,
+    height: 28,
+    paddingHorizontal: 18,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: paper.ink,
+    alignItems: 'center',
     justifyContent: 'center',
   },
-  chipOn: { backgroundColor: color.glow, borderColor: color.glow },
-  label: { fontFamily: font.serif, fontSize: 14, color: color.label },
-  labelOn: { fontFamily: font.serifBold, color: color.labelInk },
+  chipOn: { backgroundColor: 'rgba(255,255,255,0.5)' },
+  chipOff: { opacity: 0.8 },
+  pressed: { opacity: 0.5 },
+  label: { fontFamily: font.hand, fontSize: 14, color: paper.ink, textAlign: 'center' },
 });
