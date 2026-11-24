@@ -20,7 +20,7 @@ import { ThemeSheet } from '@/components/themes/ThemeSheet';
 import { DailyLimitError, illustrateBottle, illustrateEnabled } from '@/lib/illustrate';
 import { imageUri, keepImage } from '@/lib/images';
 import { isUnlocked } from '@/lib/purchases';
-import { themeOf, type ThemeId } from '@/lib/themes';
+import { themeOf, type ThemeId, withRo } from '@/lib/themes';
 import { useCellar } from '@/store';
 import { font, paper } from '@/theme';
 
@@ -125,7 +125,7 @@ export default function BottleDetail() {
             {illustrateEnabled && (
               <View style={formStyles.option}>
                 <SectionTitle>
-                  {painting ? `${themeOf(painting).label}(으)로 그리는 중…` : '테마를 선택해 주세요'}
+                  {painting ? `${withRo(themeOf(painting).label)} 그리는 중…` : '테마를 선택해 주세요'}
                 </SectionTitle>
                 <ThemePicker value={chosen} busy={painting} drawn={drawn} onSelect={pickTheme} />
                 <ThemeAction
@@ -135,11 +135,6 @@ export default function BottleDetail() {
                   error={paintError}
                   limitHit={limitHit}
                   onDraw={() => chosen && paint(chosen)}
-                  onRedraw={() => chosen && paint(chosen, true)}
-                  onPlain={() => {
-                    setChosen(null);
-                    showTheme(bottle.id, null);
-                  }}
                 />
               </View>
             )}

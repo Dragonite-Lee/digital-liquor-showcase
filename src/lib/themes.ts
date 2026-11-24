@@ -53,3 +53,11 @@ export const themeOf = (id: ThemeId | undefined) => THEMES.find((t) => t.id === 
 
 /** 유료 테마를 처음 권하는 시점: 이만큼 담아 진열장에 애착이 생긴 뒤 */
 export const NUDGE_AFTER_BOTTLES = 3;
+
+/** "수채화로", "크레용으로": 받침이 있으면(ㄹ 받침 제외) "으로", 없으면 "로" */
+export function withRo(word: string): string {
+  const code = word.charCodeAt(word.length - 1) - 0xac00;
+  if (code < 0 || code > 11171) return `${word}(으)로`;
+  const jong = code % 28;
+  return `${word}${jong === 0 || jong === 8 ? '로' : '으로'}`;
+}

@@ -11,14 +11,14 @@ import { ThemeAction } from '@/components/themes/ThemeAction';
 import { ThemeSheet } from '@/components/themes/ThemeSheet';
 import { illustrateEnabled } from '@/lib/illustrate';
 import { isUnlocked } from '@/lib/purchases';
-import { themeOf, type ThemeId } from '@/lib/themes';
+import { themeOf, type ThemeId, withRo } from '@/lib/themes';
 import type { Capture, Cut, GuessState } from '@/lib/useCapture';
 import { useCellar } from '@/store';
 import { font, paper } from '@/theme';
 
 const HINT: Record<GuessState, string> = {
   reading: '라벨을 읽고 있어요',
-  found: '라벨에서 읽은 이름이에요. 다르면 고쳐 주세요',
+  found: '',
   missed: '라벨을 읽지 못했어요. 이름을 적어 주세요',
   off: '이름과 주종을 적어 주세요',
 };
@@ -52,12 +52,12 @@ export function Review({ capture, cut, onSaved }: { capture: Capture; cut: Cut; 
               style={[formStyles.bottle, plain && styles.plain]}
               contentFit={plain ? 'cover' : 'contain'}
               transition={400}
-              accessibilityLabel={capture.art && capture.theme ? `${themeOf(capture.theme).label}(으)로 그린 병` : '방금 찍은 병'}
+              accessibilityLabel={capture.art && capture.theme ? `${withRo(themeOf(capture.theme).label)} 그린 병` : '방금 찍은 병'}
             />
             {painting && capture.theme && (
               <View style={styles.painting}>
                 <ActivityIndicator color={paper.cream} size="small" />
-                <Text style={styles.paintingText}>{themeOf(capture.theme).label}(으)로 그리는 중…</Text>
+                <Text style={styles.paintingText}>{withRo(themeOf(capture.theme).label)} 그리는 중…</Text>
               </View>
             )}
           </View>
@@ -79,8 +79,6 @@ export function Review({ capture, cut, onSaved }: { capture: Capture; cut: Cut; 
                   error={capture.paintError}
                   limitHit={capture.limitHit}
                   onDraw={() => capture.theme && capture.draw(capture.theme)}
-                  onRedraw={() => capture.theme && capture.draw(capture.theme, true)}
-                  onPlain={() => capture.choose(null)}
                 />
               </View>
             )}
@@ -92,7 +90,7 @@ export function Review({ capture, cut, onSaved }: { capture: Capture; cut: Cut; 
                 busy={reading}
                 placeholder={reading ? '라벨을 읽는 중…' : '병 이름'}
               />
-              <SmallText tone={guess === 'missed' ? 'accent' : 'ink'}>{HINT[guess]}</SmallText>
+              {HINT[guess] !== '' && <SmallText tone={guess === 'missed' ? 'accent' : 'ink'}>{HINT[guess]}</SmallText>}
               {__DEV__ && capture.guessError && <SmallText tone="accent">개발용 — 라벨: {capture.guessError}</SmallText>}
             </View>
 
