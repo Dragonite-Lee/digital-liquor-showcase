@@ -11,7 +11,13 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "kr.dragonite.suljang",
-      "usesAppleSignIn": true
+      "usesAppleSignIn": true,
+      "infoPlist": {
+        "CFBundleDevelopmentRegion": "ko",
+        "CFBundleLocalizations": [
+          "ko"
+        ]
+      }
     },
     "android": {
       "package": "kr.dragonite.suljang",
