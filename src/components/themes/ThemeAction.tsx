@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { BrushFrame } from '@/components/BrushFrame';
 import { SmallText } from '@/components/bottle/parts';
 import { themeOf, type ThemeId, withRo } from '@/lib/themes';
+import { useCellar } from '@/store';
 import { font, paper } from '@/theme';
 
 type Props = {
@@ -19,9 +20,11 @@ type Props = {
 
 /**
  * 테마 카드 아래: 고르기만 해서는 그리지 않는다.
- * 견본을 보여 주고 "그리기"를 눌러야 그린다. 그린 뒤에는 아무것도 없다 (고른 카드를 다시 누르면 누끼).
+ * 견본을 보여 주고 "그리기"를 눌러야 그린다 (변환권 1장). 그린 뒤에는 아무것도 없다 (고른 카드를 다시 누르면 누끼).
+ * 변환권이 없을 때 충전 화면을 여는 건 onDraw를 넘긴 쪽이 한다.
  */
 export function ThemeAction({ theme, drawn, painting, error, limitHit, onDraw }: Props) {
+  const credits = useCellar((s) => s.credits);
   if (!theme) return <SmallText tone="soft">테마를 고르면 그 화풍으로 그려 드려요. 고르지 않으면 사진 그대로 담겨요.</SmallText>;
   const t = themeOf(theme);
 
@@ -31,7 +34,9 @@ export function ThemeAction({ theme, drawn, painting, error, limitHit, onDraw }:
         <View style={styles.sample}>
           <Image source={t.preview} style={styles.preview} contentFit="cover" accessibilityLabel={`${t.label} 견본`} />
           <View style={styles.sampleText}>
-            <Text style={styles.caption}>이런 느낌으로 그려요</Text>
+            <Text style={styles.caption}>
+              이런 느낌으로 그려요 · 변환권 1장{credits !== null ? ` (남은 ${credits}장)` : ''}
+            </Text>
             <Pressable
               onPress={onDraw}
               accessibilityRole="button"

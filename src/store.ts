@@ -54,17 +54,11 @@ type State = {
   putArt: (id: string, theme: ThemeId, files: ArtFiles) => void;
   remove: (id: string) => void;
 
-  /** 산 테마 (수채화는 앱 구매에 포함이라 따로 두지 않는다) */
-  ownedThemes: ThemeId[];
-  /** 테마마다 한 번씩 주는 무료 체험을 쓴 테마 */
-  trialsUsed: ThemeId[];
-  /** 유료 테마 권유를 이미 보여 줬는지 */
-  nudged: boolean;
+  /** 남은 변환권 (서버가 정본, 여기는 화면용 사본). null = 아직 모름 */
+  credits: number | null;
+  setCredits: (n: number) => void;
   /** 처음 실행 때 로그인 화면을 한 번 보여 줬는지 */
   onboarded: boolean;
-  unlockThemes: (ids: ThemeId[]) => void;
-  spendTrial: (id: ThemeId) => void;
-  markNudged: () => void;
   markOnboarded: () => void;
 };
 
@@ -73,13 +67,9 @@ export const useCellar = create<State>()(
     (set, get) => ({
       bottles: [],
       filter: 'all',
-      ownedThemes: [],
-      trialsUsed: [],
-      nudged: false,
+      credits: null,
+      setCredits: (credits) => set({ credits }),
       onboarded: false,
-      unlockThemes: (ids) => set({ ownedThemes: [...new Set([...get().ownedThemes, ...ids])] }),
-      spendTrial: (id) => set({ trialsUsed: [...new Set([...get().trialsUsed, id])] }),
-      markNudged: () => set({ nudged: true }),
       markOnboarded: () => set({ onboarded: true }),
       justAdded: null,
       clearJustAdded: () => set({ justAdded: null }),
@@ -140,9 +130,7 @@ export const useCellar = create<State>()(
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
         bottles: state.bottles,
-        ownedThemes: state.ownedThemes,
-        trialsUsed: state.trialsUsed,
-        nudged: state.nudged,
+        credits: state.credits,
         onboarded: state.onboarded,
       }),
       merge: (saved, current) => {
@@ -152,8 +140,6 @@ export const useCellar = create<State>()(
         return {
           ...current,
           ...kept,
-          ownedThemes: (kept.ownedThemes ?? current.ownedThemes).map(renamed),
-          trialsUsed: (kept.trialsUsed ?? current.trialsUsed).map(renamed),
           // 자리 번호가 없던 예전 데이터에도 자리를 준다
           // 테마별 보관(arts)이 없던 예전 데이터는 보여 주던 그림 하나를 넣어 둔다
           bottles: withSlots(

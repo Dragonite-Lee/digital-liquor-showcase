@@ -16,10 +16,10 @@ import {
 } from '@/components/bottle/parts';
 import { ThemePicker } from '@/components/themes/ThemePicker';
 import { ThemeAction } from '@/components/themes/ThemeAction';
-import { ThemeSheet } from '@/components/themes/ThemeSheet';
+import { CreditSheet } from '@/components/themes/CreditSheet';
 import { DailyLimitError, illustrateBottle, illustrateEnabled } from '@/lib/illustrate';
 import { imageUri, keepImage } from '@/lib/images';
-import { isUnlocked } from '@/lib/purchases';
+import { NoCreditsError } from '@/lib/credits';
 import { themeOf, type ThemeId, withRo } from '@/lib/themes';
 import { useCellar } from '@/store';
 import { font, paper } from '@/theme';
@@ -31,21 +31,20 @@ const dateText = (ms: number) => {
 
 /** 병 상세 (피그마 "술병 진열하기") */
 export default function BottleDetail() {
-  const { id, try: tryTheme } = useLocalSearchParams<{ id: string; try?: ThemeId }>();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const bottle = useCellar((s) => s.bottles.find((b) => b.id === id));
   const update = useCellar((s) => s.update);
   const showTheme = useCellar((s) => s.showTheme);
   const putArt = useCellar((s) => s.putArt);
   const remove = useCellar((s) => s.remove);
-  const owned = useCellar((s) => s.ownedThemes);
+  const credits = useCellar((s) => s.credits);
   const [painting, setPainting] = useState<ThemeId | null>(null);
   const [paintError, setPaintError] = useState<string | null>(null);
   const [limitHit, setLimitHit] = useState(false);
   // 고른 테마 (아직 안 그렸으면 견본과 "그리기" 버튼만). 처음엔 지금 보여 주는 그림의 테마
   const [chosen, setChosen] = useState<ThemeId | null>(() => bottle?.theme ?? null);
-  // 홈의 권유 카드에서 들어오면 그 테마의 체험 시트를 바로 연다
-  const [locked, setLocked] = useState<ThemeId | null>(tryTheme && !isUnlocked(tryTheme, owned) ? tryTheme : null);
+  const [sheet, setSheet] = useState(false);
 
   if (!bottle) {
     return (
@@ -76,8 +75,11 @@ export default function BottleDetail() {
         artSticker: art.stickerUri ? keepImage(art.stickerUri, `${bottle.id}-art-sticker-${theme}-${stamp}`) : undefined,
       });
     } catch (e) {
-      setPaintError(e instanceof Error ? e.message : String(e));
-      setLimitHit(e instanceof DailyLimitError);
+      if (e instanceof NoCreditsError) setSheet(true);
+      else {
+        setPaintError(e instanceof Error ? e.message : String(e));
+        setLimitHit(e instanceof DailyLimitError);
+      }
     } finally {
       setPainting(null);
     }
@@ -94,10 +96,8 @@ export default function BottleDetail() {
     } else if (drawn.includes(theme)) {
       setChosen(theme);
       showTheme(bottle.id, theme);
-    } else if (isUnlocked(theme, owned)) {
-      setChosen(theme);
     } else {
-      setLocked(theme);
+      setChosen(theme);
     }
   };
 
@@ -134,7 +134,11 @@ export default function BottleDetail() {
                   painting={!!painting}
                   error={paintError}
                   limitHit={limitHit}
-                  onDraw={() => chosen && paint(chosen)}
+                  onDraw={() => {
+                    if (!chosen) return;
+                    if (credits === 0) setSheet(true);
+                    else paint(chosen);
+                  }}
                 />
               </View>
             )}
@@ -155,14 +159,7 @@ export default function BottleDetail() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-      <ThemeSheet
-        theme={locked}
-        onClose={() => setLocked(null)}
-        onReady={(theme) => {
-          setLocked(null);
-          paint(theme);
-        }}
-      />
+      <CreditSheet visible={sheet} onClose={() => setSheet(false)} />
     </PaperScreen>
   );
 }

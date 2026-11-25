@@ -57,9 +57,10 @@ Deno.serve(async (req) => {
       { userId: caller.id, image, mediaType, theme, bottleId, redraw },
     );
     console.log('art', caller.id, theme, provider.id, result.kind);
+    if (result.kind === 'no_credits') return json({ error: 'no_credits' }, 402);
     if (result.kind === 'limit') return json({ error: 'daily_limit', limit: result.limit }, 429);
     if (result.kind === 'cached') return json({ image: result.image, cached: true });
-    return json({ image: result.image, model: result.model, provider: provider.id, used: result.used });
+    return json({ image: result.image, model: result.model, provider: provider.id, balance: result.balance });
   } catch (e) {
     if (e instanceof ProviderError) {
       console.error(provider.id, caller.id, e.code, e.status, e.detail);

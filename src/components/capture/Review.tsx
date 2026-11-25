@@ -8,9 +8,8 @@ import { CategoryPicker } from '@/components/CategoryPicker';
 import { formStyles, MemoBox, NameField, PaperScreen, SectionTitle, SmallText, UnderlineButton } from '@/components/bottle/parts';
 import { ThemePicker } from '@/components/themes/ThemePicker';
 import { ThemeAction } from '@/components/themes/ThemeAction';
-import { ThemeSheet } from '@/components/themes/ThemeSheet';
+import { CreditSheet } from '@/components/themes/CreditSheet';
 import { illustrateEnabled } from '@/lib/illustrate';
-import { isUnlocked } from '@/lib/purchases';
 import { themeOf, type ThemeId, withRo } from '@/lib/themes';
 import type { Capture, Cut, GuessState } from '@/lib/useCapture';
 import { useCellar } from '@/store';
@@ -28,14 +27,16 @@ export function Review({ capture, cut, onSaved }: { capture: Capture; cut: Cut; 
   const insets = useSafeAreaInsets();
   const { draft, guess } = capture;
   const reading = guess === 'reading';
-  const owned = useCellar((s) => s.ownedThemes);
-  const [locked, setLocked] = useState<ThemeId | null>(null);
+  const credits = useCellar((s) => s.credits);
+  const [sheet, setSheet] = useState(false);
 
-  // 고르기만 한다. 이미 고른 카드를 다시 누르면 고르기 취소(누끼). 이미 그린 테마는 잠겨 있어도 볼 수 있다.
-  const pickTheme = (id: ThemeId) => {
-    if (capture.theme === id) return capture.choose(null);
-    if (isUnlocked(id, owned) || capture.drawn.includes(id)) capture.choose(id);
-    else setLocked(id);
+  // 고르기만 한다. 이미 고른 카드를 다시 누르면 고르기 취소(누끼).
+  const pickTheme = (id: ThemeId) => capture.choose(capture.theme === id ? null : id);
+  // 그리기: 변환권이 없는 게 확실하면 서버에 묻지 않고 충전 화면
+  const drawChosen = () => {
+    if (!capture.theme) return;
+    if (credits === 0) return setSheet(true);
+    capture.draw(capture.theme);
   };
   // 그림이 오면 그림, 아니면 누끼(또는 사진)
   const shown = capture.art ?? cut;
@@ -78,7 +79,7 @@ export function Review({ capture, cut, onSaved }: { capture: Capture; cut: Cut; 
                   painting={painting}
                   error={capture.paintError}
                   limitHit={capture.limitHit}
-                  onDraw={() => capture.theme && capture.draw(capture.theme)}
+                  onDraw={drawChosen}
                 />
               </View>
             )}
@@ -117,12 +118,11 @@ export function Review({ capture, cut, onSaved }: { capture: Capture; cut: Cut; 
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-      <ThemeSheet
-        theme={locked}
-        onClose={() => setLocked(null)}
-        onReady={(id) => {
-          setLocked(null);
-          capture.draw(id);
+      <CreditSheet
+        visible={sheet || capture.noCredits}
+        onClose={() => {
+          setSheet(false);
+          capture.clearNoCredits();
         }}
       />
     </PaperScreen>

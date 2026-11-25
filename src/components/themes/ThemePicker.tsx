@@ -2,9 +2,7 @@ import { Image } from 'expo-image';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { BrushFrame } from '@/components/BrushFrame';
-import { isUnlocked } from '@/lib/purchases';
 import { THEMES, type ThemeId } from '@/lib/themes';
-import { useCellar } from '@/store';
 import { font, paper } from '@/theme';
 
 type Props = {
@@ -18,18 +16,14 @@ type Props = {
 
 /**
  * 그림 테마 고르기 (피그마 "테마를 선택해 주세요"): 네 장의 카드가 한 줄에.
- * 고른 카드는 흰 바탕. 이미 그린 테마는 "그렸어요", 잠긴 테마는 "한 번 무료"(체험 남음) 또는 "열기"(체험 씀).
+ * 고른 카드는 흰 바탕. 테마는 모두 열려 있고, 이미 그린 테마는 "그렸어요".
  */
 export function ThemePicker({ value, busy, drawn = [], onSelect }: Props) {
-  const owned = useCellar((s) => s.ownedThemes);
-  const trials = useCellar((s) => s.trialsUsed);
-
   return (
     <View style={styles.row}>
       {THEMES.map((t, i) => {
-        const open = isUnlocked(t.id, owned);
         const on = value === t.id;
-        const note = drawn.includes(t.id) ? '그렸어요' : open ? null : trials.includes(t.id) ? '열기' : '한 번 무료';
+        const note = drawn.includes(t.id) ? '그렸어요' : null;
         return (
           <Pressable
             key={t.id}

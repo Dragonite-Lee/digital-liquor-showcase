@@ -10,6 +10,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { Intro } from '@/components/Intro';
+import { refreshCredits } from '@/lib/credits';
 import { accessToken } from '@/lib/supabase';
 import { useCellar } from '@/store';
 import { color, paper } from '@/theme';
@@ -30,9 +31,11 @@ export default function RootLayout() {
   });
   const [intro, setIntro] = useState(!introPlayed);
 
-  // 첫 촬영 전에 미리 익명 로그인해 둔다 (실패해도 앱은 그대로 쓴다)
+  // 첫 촬영 전에 미리 익명 로그인해 두고 남은 변환권을 받아 온다 (실패해도 앱은 그대로 쓴다)
   useEffect(() => {
-    accessToken().catch(() => {});
+    accessToken()
+      .then(() => refreshCredits())
+      .catch(() => {});
   }, []);
 
   useEffect(() => {

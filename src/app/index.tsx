@@ -4,16 +4,13 @@ import { router } from 'expo-router';
 import { useEffect, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown, FadeOut } from 'react-native-reanimated';
-import { HandIcon } from '@/components/HandIcon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FilterChips } from '@/components/FilterChips';
 import { FloatingField } from '@/components/FloatingField';
-import { illustrateEnabled } from '@/lib/illustrate';
 import { sampleBottles } from '@/lib/samples';
-import { NUDGE_AFTER_BOTTLES, themeOf } from '@/lib/themes';
 import { useCellar } from '@/store';
-import { color, font, paper, space } from '@/theme';
+import { font, paper, space } from '@/theme';
 
 const PAPER = require('../../assets/ui/paper.png');
 const CAMERA = require('../../assets/ui/camera.png');
@@ -33,14 +30,6 @@ export default function Home() {
   const addMany = useCellar((s) => s.addMany);
   const removeSamples = useCellar((s) => s.removeSamples);
   const added = justAdded ? bottles.find((b) => b.id === justAdded) : undefined;
-  const nudged = useCellar((s) => s.nudged);
-  const ownedThemes = useCellar((s) => s.ownedThemes);
-  const markNudged = useCellar((s) => s.markNudged);
-  // 유료 테마는 첫 촬영 때 권하지 않는다. 몇 병 모아 술장에 애착이 생긴 뒤, 담기 연출이 끝나면 한 번만.
-  const realBottles = bottles.filter((b) => !b.id.startsWith('sample-'));
-  const nudgeTarget = realBottles[0];
-  const showNudge =
-    illustrateEnabled && !nudged && !justAdded && ownedThemes.length === 0 && realBottles.length >= NUDGE_AFTER_BOTTLES;
   const hasSamples = __DEV__ && bottles.some((b) => b.id.startsWith('sample-'));
 
   useEffect(() => {
@@ -121,28 +110,6 @@ export default function Home() {
         </Animated.View>
       )}
 
-      {showNudge && nudgeTarget && (
-        <Animated.View entering={FadeInDown.duration(320)} style={[styles.nudge, { bottom: insets.bottom + 118 }]}>
-          <Pressable
-            onPress={() => {
-              markNudged();
-              router.push({ pathname: '/bottle/[id]', params: { id: nudgeTarget.id, try: 'vangogh' } });
-            }}
-            accessibilityRole="button"
-            style={styles.nudgeHit}
-          >
-            <Image source={themeOf('vangogh').preview} style={styles.nudgeThumb} contentFit="cover" />
-            <View style={styles.nudgeCopy}>
-              <Text style={styles.nudgeTitle}>{nudgeTarget.name || '방금 담은 병'}, 고흐 화풍으로 그려 볼까요?</Text>
-              <Text style={styles.nudgeBody}>인상주의·유화·크레용, 테마마다 한 번은 무료예요</Text>
-            </View>
-          </Pressable>
-          <Pressable onPress={markNudged} accessibilityRole="button" accessibilityLabel="권유 닫기" hitSlop={10}>
-            <HandIcon name="close" size={20} />
-          </Pressable>
-        </Animated.View>
-      )}
-
       <View style={[styles.dock, { paddingBottom: insets.bottom + 24 }]} pointerEvents="box-none">
         <Pressable
           onPress={() => router.push('/cabinet')}
@@ -188,27 +155,6 @@ const styles = StyleSheet.create({
   },
   devCorner: { position: 'absolute', right: space.l, marginTop: 0, zIndex: 3 },
   devLabel: { fontSize: 12, color: paper.inkSoft },
-  nudge: {
-    position: 'absolute',
-    left: space.m,
-    right: space.m,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.s,
-    padding: 10,
-    paddingRight: space.m,
-    borderRadius: 16,
-    backgroundColor: '#FFF8EE',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: paper.line,
-    boxShadow: '0 8px 20px rgba(90,60,30,0.18)',
-    zIndex: 5,
-  },
-  nudgeHit: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.m },
-  nudgeThumb: { width: 40, height: 56, borderRadius: 6 },
-  nudgeCopy: { flex: 1 },
-  nudgeTitle: { fontFamily: font.serifBold, fontSize: 14, color: color.labelInk },
-  nudgeBody: { fontFamily: font.serif, fontSize: 12, color: '#5A4C30', marginTop: 2 },
   toast: {
     position: 'absolute',
     alignSelf: 'center',

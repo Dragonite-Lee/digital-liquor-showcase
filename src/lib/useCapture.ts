@@ -8,6 +8,7 @@ import { type ArtFiles, newId, useCellar } from '@/store';
 
 import type { CategoryId } from './categories';
 import { classifyBottle, classifyEnabled, lastClassifyError } from './classify';
+import { NoCreditsError } from './credits';
 import { type Art, DailyLimitError, illustrateBottle, illustrateEnabled } from './illustrate';
 import { keepImage } from './images';
 import type { ThemeId } from './themes';
@@ -50,6 +51,8 @@ export function useCapture() {
   const [painting, setPainting] = useState<ThemeId | null>(null);
   const [paintError, setPaintError] = useState<string | null>(null);
   const [limitHit, setLimitHit] = useState(false);
+  /** 변환권이 없어 못 그렸다 → 충전 화면 */
+  const [noCredits, setNoCredits] = useState(false);
   const [saveError, setSaveError] = useState(false);
   const [saving, setSaving] = useState(false);
   // 확인 화면과 담은 뒤가 같은 모습이 되도록 id를 미리 정한다
@@ -107,6 +110,7 @@ export function useCapture() {
       })
       .catch((e) => {
         if (mine !== run.current) return;
+        if (e instanceof NoCreditsError) return setNoCredits(true);
         setPaintError(e instanceof Error ? e.message : String(e));
         setLimitHit(e instanceof DailyLimitError);
       })
@@ -245,6 +249,8 @@ export function useCapture() {
     paint,
     paintError,
     limitHit,
+    noCredits,
+    clearNoCredits: () => setNoCredits(false),
     saveError,
     saving,
     process,

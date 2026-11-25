@@ -3,6 +3,9 @@ import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { Platform } from 'react-native';
 import { isAvailable, liftSubject } from 'subject-lift';
 
+import { useCellar } from '@/store';
+
+import { NoCreditsError } from './credits';
 import { authHeaders } from './supabase';
 import type { ThemeId } from './themes';
 
@@ -17,10 +20,10 @@ export const illustrateEnabled = !!URL && Platform.OS !== 'web';
 
 export type Art = { uri: string; stickerUri?: string; width: number; height: number };
 
-/** 오늘 그릴 수 있는 장수를 다 썼다 (서버 하루 한도) */
+/** 서버 안전장치(하루 퓨즈)에 닿았다. 정상 사용이면 닿지 않는다 */
 export class DailyLimitError extends Error {
   constructor(public limit: number) {
-    super(`오늘 그릴 수 있는 ${limit}장을 다 썼어요. 내일 다시 그려 주세요.`);
+    super('오늘은 더 그릴 수 없어요. 내일 다시 그려 주세요.');
   }
 }
 
@@ -58,14 +61,19 @@ export async function illustrateBottle(
     body: JSON.stringify({ image: input.base64, mediaType: png ? 'image/png' : 'image/jpeg', theme, bottleId, redraw }),
   });
   if (res.status === 401) throw new Error('서버 로그인이 안 됐어요 — 네트워크를 확인하고 다시 시도해 주세요');
+  if (res.status === 402) {
+    useCellar.getState().setCredits(0);
+    throw new NoCreditsError();
+  }
   if (res.status === 429) {
     const body = await res.json().catch(() => ({}));
-    throw new DailyLimitError(typeof body?.limit === 'number' ? body.limit : 10);
+    throw new DailyLimitError(typeof body?.limit === 'number' ? body.limit : 200);
   }
   if (res.status === 422) throw new Error(`그림 모델의 안전 필터가 이 병을 막았어요 — ${(await res.text()).slice(0, 240)}`);
   if (!res.ok) throw new Error(`HTTP ${res.status} ${(await res.text()).slice(0, 200)}`);
   const data = await res.json();
   if (typeof data?.image !== 'string') throw new Error('그림을 받지 못했어요');
+  if (typeof data.balance === 'number') useCellar.getState().setCredits(data.balance);
 
   const raw = new File(Paths.cache, `paint-${Date.now().toString(36)}.png`);
   raw.create({ overwrite: true });

@@ -37,24 +37,26 @@ deno test -A supabase/functions/_tests   # 재시도·응답 파싱·모델 선�
 npx tsc --noEmit
 ```
 
-## 그림 정책: 누끼 먼저, 누르면 그리기, 하루 10장
+## 변환권 (테마 모두 열림, 그림 한 장 = 1장)
 
 ### 서버에 올리기
 ```bash
-npx supabase db push --remote                       # claim_art · refund_art · 캐시 인덱스
+npx supabase db push --remote          # credits 테이블·함수 (예전 하루 10장 함수는 지워짐)
 npx supabase functions deploy illustrate-bottle
-npx supabase functions deploy delete-account        # 공통 admin 모듈로 바꿈
+npx supabase functions deploy credits
+npx supabase functions deploy delete-account
 ```
+결제 웹훅(`revenuecat-webhook`)은 RevenueCat 가입 뒤에 올린다.
 
 ### 확인할 것
-- [ ] 찍은 직후 그림이 자동으로 그려지지 않고 누끼만 보인다
-- [ ] 테마 카드를 누르면 견본과 "수채화로 그리기"·"크레용으로 그리기" 버튼만 나온다 (그리지 않음)
-- [ ] 그리기 → 그림이 나온다. 다른 테마를 그렸다가 돌아오면 바로 바뀐다 (다시 안 그림)
-- [ ] 고른 카드를 다시 누르면 선택이 풀리고 누끼로 담긴다 (그린 뒤에는 버튼이 없다)
-- [ ] 담은 뒤 상세에서 이미 그린 테마 카드에 "그렸어요"가 있고, 누르면 무료로 바뀐다
-- [ ] Supabase `art_jobs`에 그린 만큼 줄이 생기고 `art` 저장소에 파일이 생긴다
-- [ ] 같은 병·같은 테마를 상세에서 다시 요청해도 함수 로그가 `cached`다 (앱 재설치 후 포함)
-- [ ] `usage_daily.art_count`를 9로 바꿔 두고 2장 그리면 두 번째에 "오늘 그릴 수 있는 10장을 다 썼어요"
+- [ ] 찍은 직후 누끼만 보이고, 테마 카드에 잠금·"한 번 무료"가 없다
+- [ ] 로그인 전: 그리기를 누르면 충전 화면이 뜨고 "로그인하면 변환권 10장" 안내가 있다
+- [ ] 로그인하면 계정 화면에 "변환권 10장을 받았어요", 잔액 10장
+- [ ] 로그아웃 없이 다시 열어도 10장이 또 들어오지 않는다
+- [ ] 그리기 → 잔액 9장, 견본 옆 "(남은 9장)"
+- [ ] 다른 테마를 그렸다가 돌아오면 바로 바뀌고 잔액이 줄지 않는다
+- [ ] Table Editor `credit_events`: welcome +10, spend -1 줄
+- [ ] (선택) `credits.balance`를 0으로 바꾸고 그리기 → 충전 화면
 
 ## 로그인 (설정은 README "로그인" 참고)
 

@@ -16,6 +16,8 @@ import {
   signInWithApple,
   signInWithGoogle,
 } from '@/lib/auth';
+import { CreditSheet } from '@/components/themes/CreditSheet';
+import { refreshCredits, WELCOME_CREDITS } from '@/lib/credits';
 import { useCellar } from '@/store';
 import { font, paper, space } from '@/theme';
 
@@ -34,12 +36,17 @@ export default function Login() {
   const [account, setAccount] = useState<Account | null>(null);
   const [busy, setBusy] = useState<Provider | 'delete' | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const credits = useCellar((s) => s.credits);
+  /** 로그인으로 방금 받은 변환권 */
+  const [gift, setGift] = useState(0);
+  const [sheet, setSheet] = useState(false);
 
   useEffect(() => {
     appleAvailable().then(setApple);
     currentAccount()
       .then(setAccount)
       .catch(() => setAccount({ linked: false }));
+    refreshCredits();
   }, []);
 
   const close = () => {
@@ -55,6 +62,10 @@ export default function Login() {
       await (provider === 'apple' ? signInWithApple() : signInWithGoogle());
       setAccount(await currentAccount());
       markOnboarded();
+      // 로그인한 계정이면 서버가 이때 첫 변환권을 준다 (계정마다 한 번)
+      const before = useCellar.getState().credits ?? 0;
+      const after = await refreshCredits();
+      if (after !== null && after > before) setGift(after - before);
     } catch (e) {
       if (!(e instanceof AuthCancelled)) setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -74,6 +85,8 @@ export default function Login() {
           try {
             await deleteAccount();
             setAccount({ linked: false });
+            useCellar.getState().setCredits(0);
+            refreshCredits();
           } catch (e) {
             setError(e instanceof Error ? e.message : String(e));
           } finally {
@@ -92,12 +105,18 @@ export default function Login() {
           호가술병
         </Text>
         {account?.linked ? (
-          <Text style={styles.body}>
-            {account.providers.map((p) => NAMES[p]).join(' · ') || '계정'}에 연결돼 있어요
-            {account.email ? `\n${account.email}` : ''}
-          </Text>
+          <>
+            <Text style={styles.body}>
+              {account.providers.map((p) => NAMES[p]).join(' · ') || '계정'}에 연결돼 있어요
+              {account.email ? `\n${account.email}` : ''}
+            </Text>
+            {gift > 0 && <Text style={styles.gift}>변환권 {gift}장을 받았어요</Text>}
+          </>
         ) : (
-          <Text style={styles.body}>계정을 연결해 두면{'\n'}폰을 바꿔도 이어서 쓸 수 있어요</Text>
+          <Text style={styles.body}>
+            계정을 연결해 두면{'\n'}폰을 바꿔도 이어서 쓸 수 있어요{'\n'}
+            <Text style={styles.gift}>로그인하면 변환권 {WELCOME_CREDITS}장을 드려요</Text>
+          </Text>
         )}
       </View>
 
@@ -108,6 +127,13 @@ export default function Login() {
           <ActivityIndicator color={paper.ink} />
         ) : account.linked ? (
           <>
+            <Pressable
+              onPress={() => setSheet(true)}
+              accessibilityRole="button"
+              style={({ pressed }) => [styles.google, pressed && styles.pressed]}
+            >
+              <Text style={styles.creditsLabel}>남은 변환권 {credits ?? 0}장 · 충전하기</Text>
+            </Pressable>
             <Pressable onPress={close} accessibilityRole="button" style={({ pressed }) => [styles.primary, pressed && styles.pressed]}>
               <Text style={styles.primaryLabel}>확인</Text>
             </Pressable>
@@ -154,6 +180,7 @@ export default function Login() {
           </Text>
         )}
       </View>
+      <CreditSheet visible={sheet} onClose={() => setSheet(false)} />
     </View>
   );
 }
@@ -164,6 +191,8 @@ const styles = StyleSheet.create({
   art: { alignSelf: 'center', width: 230, height: 230, borderRadius: 40, opacity: 0.95 },
   title: { fontFamily: font.hand, fontSize: 44, color: paper.ink },
   body: { fontFamily: font.hand, fontSize: 19, lineHeight: 27, color: paper.ink, textAlign: 'center' },
+  gift: { fontFamily: font.hand, fontSize: 18, color: paper.accent, textAlign: 'center' },
+  creditsLabel: { fontFamily: font.hand, fontSize: 18, color: paper.ink },
   actions: { gap: space.m, alignItems: 'stretch' },
   apple: { height: 52, width: '100%' },
   google: {

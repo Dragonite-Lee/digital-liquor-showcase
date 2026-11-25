@@ -1,10 +1,10 @@
-// 그림 비용을 아끼는 규칙: 같은 사진·같은 테마는 서버에 남긴 그림을 돌려주고(캐시),
-// 새로 그릴 때만 하루 한도(기본 10장)를 쓴다. 실패하면 한도를 돌려준다.
+// 그림 한 장 = 변환권 1장. 같은 사진·같은 테마는 서버에 남긴 그림을 돌려준다(캐시, 변환권 안 씀).
+// 새로 그릴 때만 1장을 쓰고, 실패하면 돌려준다. 하루 200장은 버그 대비 퓨즈.
 import type { Admin } from '../_shared/admin.ts';
 import { base64ToBytes, bytesToBase64 } from '../_shared/http.ts';
 import type { ArtOutput } from './providers/types.ts';
 
-export const DAILY_LIMIT = Number(Deno.env.get('ART_DAILY_LIMIT') ?? 10);
+export const DAILY_CAP = Number(Deno.env.get('ART_DAILY_CAP') ?? 200);
 
 export type Job = {
   userId: string;
@@ -20,8 +20,8 @@ export type Job = {
 export interface Ledger {
   /** 이 사용자가 같은 사진·테마로 그린 그림 (base64), 없으면 null */
   cached(userId: string, hash: string, theme: string): Promise<string | null>;
-  /** 오늘 사용량을 1 올리고 올린 값을 돌려준다. 한도에 닿았으면 -1 */
-  claim(userId: string, limit: number): Promise<number>;
+  /** 변환권 1장을 쓰고 남은 잔액을 돌려준다. -1 = 변환권 없음, -2 = 오늘 퓨즈 */
+  spend(userId: string, cap: number): Promise<number>;
   refund(userId: string): Promise<void>;
   /** 그림을 저장소에 남기고 작업 기록을 쓴다 */
   record(job: Job): Promise<void>;
@@ -33,13 +33,14 @@ export type Request = {
   mediaType: string;
   theme: string;
   bottleId: string;
-  /** 마음에 안 들어 다시 그리기: 캐시를 건너뛴다 (한도는 쓴다) */
+  /** 캐시를 건너뛰고 새로 그린다 (변환권을 쓴다). 지금 앱은 쓰지 않는다 */
   redraw: boolean;
 };
 
 export type Result =
   | { kind: 'cached'; image: string }
-  | { kind: 'drawn'; image: string; model: string; used: number }
+  | { kind: 'drawn'; image: string; model: string; balance: number }
+  | { kind: 'no_credits' }
   | { kind: 'limit'; limit: number };
 
 export async function inputHash(mediaType: string, image: string): Promise<string> {
@@ -51,7 +52,7 @@ export async function illustrate(
   ledger: Ledger,
   provider: { id: string; draw: () => Promise<ArtOutput> },
   req: Request,
-  limit = DAILY_LIMIT,
+  cap = DAILY_CAP,
 ): Promise<Result> {
   const hash = await inputHash(req.mediaType, req.image);
 
@@ -63,8 +64,9 @@ export async function illustrate(
     if (hit) return { kind: 'cached', image: hit };
   }
 
-  const used = await ledger.claim(req.userId, limit);
-  if (used < 0) return { kind: 'limit', limit };
+  const balance = await ledger.spend(req.userId, cap);
+  if (balance === -1) return { kind: 'no_credits' };
+  if (balance < 0) return { kind: 'limit', limit: cap };
 
   let out: ArtOutput;
   try {
@@ -78,7 +80,7 @@ export async function illustrate(
   await ledger
     .record({ ...req, hash, image: out.image, provider: provider.id, model: out.model })
     .catch((e) => console.error('record', e));
-  return { kind: 'drawn', image: out.image, model: out.model, used };
+  return { kind: 'drawn', image: out.image, model: out.model, balance };
 }
 
 const mimeOf = (bytes: Uint8Array) => (bytes[0] === 0xff && bytes[1] === 0xd8 ? 'image/jpeg' : 'image/png');
@@ -103,13 +105,13 @@ export function dbLedger(admin: Admin): Ledger {
       if (file.error) throw file.error;
       return bytesToBase64(new Uint8Array(await file.data.arrayBuffer()));
     },
-    async claim(userId, limit) {
-      const { data, error } = await admin.rpc('claim_art', { p_user: userId, p_limit: limit });
+    async spend(userId, cap) {
+      const { data, error } = await admin.rpc('spend_credit', { p_user: userId, p_cap: cap });
       if (error) throw error;
       return typeof data === 'number' ? data : -1;
     },
     async refund(userId) {
-      const { error } = await admin.rpc('refund_art', { p_user: userId });
+      const { error } = await admin.rpc('refund_credit', { p_user: userId });
       if (error) throw error;
     },
     async record(job) {
